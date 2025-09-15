@@ -1,0 +1,23 @@
+import { SignIn } from "@clerk/nextjs";
+
+export default function SignInPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <SignIn 
+        appearance={{
+          elements: {
+            formButtonPrimary: 
+              "bg-indigo-600 hover:bg-indigo-700 text-sm normal-case",
+            card: "shadow-lg",
+            headerTitle: "text-2xl font-bold",
+            headerSubtitle: "text-zinc-600",
+            socialButtonsBlockButton: 
+              "border-zinc-300 hover:bg-zinc-50 hover:border-zinc-400",
+            formFieldLabel: "text-zinc-700",
+            footerActionLink: "text-indigo-600 hover:text-indigo-700"
+          }
+        }}
+      />
+    </div>
+  );
+}

@@ -28,14 +28,24 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files (do not commit secrets!)
 .env*
+!.env.example   # keep a safe template if needed
 
-# vercel
+# vercel / deployment
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+# Playwright / testing outputs
+playwright-report/
+test-results/
+playwright/.cache/
