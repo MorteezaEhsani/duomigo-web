@@ -1,16 +1,15 @@
+// app/api/attempts/[attemptId]/analyze/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic'; // prevent static optimization of this route
+export const dynamic = 'force-dynamic';
 
 // Create Supabase client with service role for server operations
 function createServerSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  // (optional) guard:
-  // if (!url || !key) throw new Error('Supabase envs are not set');
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -86,12 +85,14 @@ function getCEFRLevel(overall: number): 'A2' | 'B1' | 'B2' | 'C1' {
   return 'A2';
 }
 
+type RouteParams = { attemptId: string };
+
 export async function POST(
   request: NextRequest,
-  { params }: { params: { attemptId: string } }
+  context: { params: Promise<RouteParams> } // <- Next.js (your setup) expects Promise here
 ) {
   try {
-    const { attemptId } = params;
+    const { attemptId } = await context.params;
 
     // 1) Server auth
     const { userId } = await auth();
@@ -130,8 +131,8 @@ export async function POST(
     }
 
     // 3) Build analysis from stored data
-    const transcript = attempt.transcript || '';
-    const duration = attempt.duration || 30;
+    const transcript: string = attempt.transcript || '';
+    const duration: number = attempt.duration || 30;
 
     const metrics = calculateMetrics(transcript, duration);
 
@@ -145,7 +146,7 @@ export async function POST(
       task: (attempt.coherence_score || 0) * 20,
     };
 
-    const overall = attempt.overall_score || attempt.score || 0;
+    const overall: number = attempt.overall_score || attempt.score || 0;
     const cefr = getCEFRLevel(overall);
 
     let actionPlan: string[] = [];
