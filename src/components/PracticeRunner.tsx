@@ -235,9 +235,9 @@ export default function PracticeRunner({
 
   const handlePlayAudio = async () => {
     if (question.type !== 'listen_then_speak') return;
-    
+
     // Prevent multiple simultaneous plays
-    if (isPlaying || audioRef.current) return;
+    if (isPlaying) return;
     
     setIsPlaying(true);
     try {

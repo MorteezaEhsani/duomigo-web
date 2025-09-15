@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
           { 
             error: 'Validation error',
             message: 'Invalid request data',
-            details: error.errors 
+            details: error.issues 
           },
           { status: 400 }
         );
@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
           { 
             error: 'Validation error',
             message: 'Invalid query parameters',
-            details: error.errors 
+            details: error.issues 
           },
           { status: 400 }
         );

@@ -97,13 +97,15 @@ function getCEFRLevel(overall: number): 'A2' | 'B1' | 'B2' | 'C1' {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { attemptId: string } }
+  { params }: { params: Promise<{ attemptId: string }> }
 ) {
   try {
+    const { attemptId } = await params;
+
     // 1. Server auth
     const { userId } = await auth();
     const user = await currentUser();
-    
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -111,7 +113,6 @@ export async function POST(
       );
     }
 
-    const attemptId = params.attemptId;
     const supabase = createServerSupabase();
 
     // Get Supabase user ID

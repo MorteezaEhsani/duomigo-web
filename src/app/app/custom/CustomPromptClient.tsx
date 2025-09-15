@@ -114,7 +114,7 @@ export default function CustomPromptClient() {
                 <span>5m</span>
               </div>
               <p className="text-sm text-gray-600 mt-3 bg-gray-50 p-3 rounded">
-                You'll need to speak for at least <strong>{Math.ceil(Math.max(30, duration / 3))} seconds</strong> and 
+                You&apos;ll need to speak for at least <strong>{Math.ceil(Math.max(30, duration / 3))} seconds</strong> and
                 can speak up to <strong>{duration} seconds</strong>.
               </p>
             </div>
@@ -123,7 +123,7 @@ export default function CustomPromptClient() {
             {/* Prep Time Note */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <p className="text-sm text-amber-800">
-                <strong>Note:</strong> You'll have 20 seconds to prepare before recording starts.
+                <strong>Note:</strong> You&apos;ll have 20 seconds to prepare before recording starts.
               </p>
             </div>
 

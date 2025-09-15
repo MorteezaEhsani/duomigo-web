@@ -8,16 +8,19 @@ async function getOrCreateProfile(userId: string) {
   const supabase = await createServerSupabase();
   
   // Try to get existing profile
-  let { data: profile, error } = await supabase
+  const result = await supabase
     .from('profiles')
     .select('*')
     .eq('user_id', userId)
     .single();
 
+  let profile = result.data;
+  const error = result.error;
+
   // If no profile exists, create one
   if (!profile || error?.code === 'PGRST116') {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     const { data: newProfile, error: insertError } = await supabase
       .from('profiles')
       .upsert({

@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       const age = Date.now() - cachedEntry.timestamp;
       if (age < CACHE_TTL) {
         console.log(`TTS cache hit for text hash: ${cacheKey.substring(0, 8)}...`);
-        return new NextResponse(cachedEntry.audioBuffer, {
+        return new NextResponse(new Uint8Array(cachedEntry.audioBuffer), {
           status: 200,
           headers: {
             'Content-Type': 'audio/mpeg',
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Return audio response
-    return new NextResponse(audioBuffer, {
+    return new NextResponse(new Uint8Array(audioBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'audio/mpeg',

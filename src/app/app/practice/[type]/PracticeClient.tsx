@@ -219,7 +219,7 @@ export default function PracticeClient({ initialUserId, supabaseUserId }: Practi
           </div>
           <h2 className="text-xl font-semibold text-zinc-900 mb-2">No Questions Available</h2>
           <p className="text-zinc-600 mb-6">
-            There are no questions available for "{type.replace(/_/g, ' ')}" practice at the moment.
+            There are no questions available for &quot;{type.replace(/_/g, ' ')}&quot; practice at the moment.
           </p>
           <button 
             onClick={() => router.push('/app')}

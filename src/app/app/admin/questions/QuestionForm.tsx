@@ -16,6 +16,7 @@ interface Question {
   prep_seconds: number;
   min_seconds: number;
   max_seconds: number;
+  metadata?: Record<string, unknown>;
 }
 
 interface QuestionType {
@@ -134,7 +135,7 @@ export default function QuestionForm({
     }
   };
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | number | null) => {
     setFormData({ ...formData, [field]: value });
     // Clear error for this field
     if (errors[field]) {

@@ -54,7 +54,7 @@ interface Question {
   prep_seconds: number;
   min_seconds: number;
   max_seconds: number;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   created_at: string;
 }
 
