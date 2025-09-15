@@ -1,25 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic'; // prevent static optimization of this route
 
 // Create Supabase client with service role for server operations
 function createServerSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  // (optional) guard:
+  // if (!url || !key) throw new Error('Supabase envs are not set');
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }
 
 // Types matching the frontend expectations
@@ -55,28 +49,25 @@ type AnalyzeResponse = {
 
 // Helper function to calculate metrics from transcript
 function calculateMetrics(transcript: string, durationSec: number) {
-  const words = transcript.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+  const words = transcript.toLowerCase().split(/\s+/).filter(w => w.length > 0);
   const wordCount = words.length;
-  
-  // Calculate WPM
+
   const wordsPerMinute = durationSec > 0 ? Math.round((wordCount / durationSec) * 60) : 0;
-  
-  // Count fillers
+
   const fillers = ['um', 'uh', 'like', 'you know', 'so', 'actually', 'basically', 'literally'];
   let fillerCount = 0;
   const transcriptLower = transcript.toLowerCase();
-  fillers.forEach(filler => {
+  for (const filler of fillers) {
     const regex = new RegExp(`\\b${filler}\\b`, 'g');
     const matches = transcriptLower.match(regex);
     if (matches) fillerCount += matches.length;
-  });
-  
+  }
+
   const fillerPerMin = durationSec > 0 ? (fillerCount / durationSec) * 60 : 0;
-  
-  // Calculate Type-Token Ratio (vocabulary diversity)
+
   const uniqueWords = new Set(words);
   const typeTokenRatio = wordCount > 0 ? uniqueWords.size / wordCount : 0;
-  
+
   return {
     durationSec,
     wordsPerMinute,
@@ -97,43 +88,35 @@ function getCEFRLevel(overall: number): 'A2' | 'B1' | 'B2' | 'C1' {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ attemptId: string }> }
+  { params }: { params: { attemptId: string } }
 ) {
   try {
-    const { attemptId } = await params;
+    const { attemptId } = params;
 
-    // 1. Server auth
+    // 1) Server auth
     const { userId } = await auth();
     const user = await currentUser();
-
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const supabase = createServerSupabase();
 
-    // Get Supabase user ID
+    // Ensure a Supabase user row exists / get its id
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',
       {
         p_clerk_user_id: userId,
         p_email: user?.emailAddresses[0]?.emailAddress,
-        p_display_name: user?.firstName || user?.username || 'User'
+        p_display_name: user?.firstName || user?.username || 'User',
       }
     );
-
     if (userError || !supabaseUserId) {
       console.error('Error getting user:', userError);
-      return NextResponse.json(
-        { error: 'Failed to authenticate user' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Failed to authenticate user' }, { status: 500 });
     }
 
-    // 2. Fetch the attempt with all its data
+    // 2) Fetch the attempt
     const { data: attempt, error: attemptError } = await supabase
       .from('attempts')
       .select('*')
@@ -143,65 +126,56 @@ export async function POST(
 
     if (attemptError || !attempt) {
       console.error('Error fetching attempt:', attemptError);
-      return NextResponse.json(
-        { error: 'Attempt not found or access denied' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Attempt not found or access denied' }, { status: 404 });
     }
 
-    // If we don't have a transcript, return empty analysis
+    // 3) Build analysis from stored data
     const transcript = attempt.transcript || '';
-    
-    // Calculate metrics
-    const duration = attempt.duration || 30; // Default 30 seconds if not recorded
+    const duration = attempt.duration || 30;
+
     const metrics = calculateMetrics(transcript, duration);
 
-    // Convert existing scores to rubric format (0-100 scale)
     const rubric: Rubric = {
       fluency: (attempt.fluency_score || 0) * 20,
       pronunciation: (attempt.pronunciation_score || 0) * 20,
       grammar: (attempt.grammar_score || 0) * 20,
       vocabulary: (attempt.vocabulary_score || 0) * 20,
       coherence: (attempt.coherence_score || 0) * 20,
-      task: (attempt.coherence_score || 0) * 20, // Using coherence as proxy for task completion
+      // Using coherence as proxy for task completion
+      task: (attempt.coherence_score || 0) * 20,
     };
 
     const overall = attempt.overall_score || attempt.score || 0;
     const cefr = getCEFRLevel(overall);
 
-    // Extract action plan from feedback_json if available
     let actionPlan: string[] = [];
     let grammarIssues: AnalyzeResponse['grammarIssues'] = [];
 
     if (attempt.feedback_json) {
-      actionPlan = attempt.feedback_json.actionable_tips || 
-                   attempt.feedback_json.improvements || 
-                   ['Practice speaking more fluently', 
-                    'Work on pronunciation clarity', 
-                    'Expand your vocabulary range'];
-      
-      // For now, we don't have grammar issues in the existing data
-      // This would need a separate grammar checking service
-      grammarIssues = [];
+      actionPlan =
+        attempt.feedback_json.actionable_tips ||
+        attempt.feedback_json.improvements || [
+          'Practice speaking more fluently',
+          'Work on pronunciation clarity',
+          'Expand your vocabulary range',
+        ];
+      grammarIssues = []; // none stored currently
     } else {
-      // Default action plan if no feedback exists
       actionPlan = [
         'Record yourself speaking and listen back to identify areas for improvement',
         'Practice speaking for the full duration without long pauses',
-        'Focus on clear pronunciation and natural intonation'
+        'Focus on clear pronunciation and natural intonation',
       ];
     }
 
-    // If transcript is too short or empty, add specific feedback
     if (transcript.length < 10) {
       actionPlan = [
         'Make sure your microphone is working and speak clearly',
         'Try to speak for at least 30 seconds to get meaningful feedback',
-        'Practice in a quiet environment to ensure good audio quality'
+        'Practice in a quiet environment to ensure good audio quality',
       ];
     }
 
-    // Construct the response
     const response: AnalyzeResponse = {
       transcript,
       metrics,
@@ -213,11 +187,9 @@ export async function POST(
     };
 
     return NextResponse.json(response);
-
   } catch (error) {
     console.error('Analyze API error:', error);
-    
-    // Return a mock response for development
+
     if (process.env.NODE_ENV === 'development') {
       const mockResponse: AnalyzeResponse = {
         transcript: 'This is a mock transcript for testing purposes.',
@@ -242,23 +214,19 @@ export async function POST(
         actionPlan: [
           'Focus on reducing filler words like "um" and "uh"',
           'Practice speaking at a steady pace without rushing',
-          'Work on using more varied vocabulary'
+          'Work on using more varied vocabulary',
         ],
         grammarIssues: [
           {
             before: 'I have went there',
             after: 'I have gone there',
-            explanation: 'Use past participle "gone" with "have"'
-          }
+            explanation: 'Use past participle "gone" with "have"',
+          },
         ],
       };
-      
       return NextResponse.json(mockResponse);
     }
-    
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
