@@ -31,7 +31,6 @@ export default function DashboardClient({ userId, initialStreakData }: Dashboard
   const [streakData, setStreakData] = useState<StreakData | null>(initialStreakData || null);
   const [loading, setLoading] = useState(!initialStreakData);
   const [error, setError] = useState<string | null>(null);
-  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && userId) {
@@ -59,7 +58,6 @@ export default function DashboardClient({ userId, initialStreakData }: Dashboard
         throw new Error('Failed to initialize user profile');
       }
 
-      setSupabaseUserId(mappedUserId);
 
       // Fetch streak data and check if it needs to be reset
       const { data, error: streakError } = await supabase
@@ -80,21 +78,29 @@ export default function DashboardClient({ userId, initialStreakData }: Dashboard
         let currentStreak = data.current_streak;
         if (data.last_activity_date) {
           const lastActivity = new Date(data.last_activity_date);
+          lastActivity.setHours(0, 0, 0, 0); // Reset time to start of day
+
           const today = new Date();
           today.setHours(0, 0, 0, 0);
+
           const yesterday = new Date(today);
           yesterday.setDate(yesterday.getDate() - 1);
-          
-          // If last activity was before yesterday, reset streak
-          if (lastActivity < yesterday) {
-            console.log('Streak broken - last activity was', data.last_activity_date);
+
+          // Calculate days difference
+          const daysDiff = Math.floor((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
+
+          // If last activity was more than 1 day ago (not today or yesterday), reset streak
+          if (daysDiff > 1) {
+            console.log('Streak broken - last activity was', data.last_activity_date, '- days diff:', daysDiff);
             currentStreak = 0;
-            
+
             // Update the database to reset the streak
             await supabase
               .from('streaks')
               .update({ current_streak: 0 })
               .eq('user_id', mappedUserId);
+          } else {
+            console.log('Streak maintained - last activity was', data.last_activity_date, '- days diff:', daysDiff);
           }
         }
         
@@ -106,65 +112,6 @@ export default function DashboardClient({ userId, initialStreakData }: Dashboard
     } catch (err) {
       console.error('Error initializing user:', err);
       setError('Failed to load dashboard data');
-      toast.error('Failed to load your progress. Please refresh the page.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStreakData = async () => {
-    if (!supabaseUserId) {
-      await initializeUser();
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error } = await supabase
-        .from('streaks')
-        .select('current_streak, best_streak, last_activity_date')
-        .eq('user_id', supabaseUserId)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          setStreakData({ current_streak: 0, best_streak: 0 });
-        } else {
-          throw error;
-        }
-      } else {
-        // Check if streak should be reset (last activity was more than 1 day ago)
-        let currentStreak = data.current_streak;
-        if (data.last_activity_date) {
-          const lastActivity = new Date(data.last_activity_date);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          
-          // If last activity was before yesterday, reset streak
-          if (lastActivity < yesterday) {
-            console.log('Streak broken - last activity was', data.last_activity_date);
-            currentStreak = 0;
-            
-            // Update the database to reset the streak
-            await supabase
-              .from('streaks')
-              .update({ current_streak: 0 })
-              .eq('user_id', supabaseUserId);
-          }
-        }
-        
-        setStreakData({
-          current_streak: currentStreak,
-          best_streak: data.best_streak
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching streak data:', err);
-      setError('Failed to load streak data');
       toast.error('Failed to load your progress. Please refresh the page.');
     } finally {
       setLoading(false);
@@ -251,7 +198,6 @@ export default function DashboardClient({ userId, initialStreakData }: Dashboard
   ];
 
   const currentStreak = streakData?.current_streak ?? 0;
-  const bestStreak = streakData?.best_streak ?? 0;
   
   // Calculate current day of week (0 = Sunday, 6 = Saturday)
   const today = new Date();
