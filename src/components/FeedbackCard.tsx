@@ -24,7 +24,7 @@ interface Feedback {
   vocabulary: number;
   coherence: number;
   task?: number;
-  strengths: string | string[];          // kept for compatibility, not rendered (Flutter UI doesn’t show)
+  strengths: string | string[];          // kept for compatibility, not rendered (Flutter UI doesn't show)
   improvements: string | string[];       // kept for compatibility, not rendered
   actionable_tips: string[];
   grammarIssues?: {
@@ -54,17 +54,17 @@ export default function FeedbackCard({ feedback, onRetry }: FeedbackCardProps) {
   const cefrClasses = (cefr?: string) => {
     switch (cefr) {
       case 'A2':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        return 'bg-amber-50 text-amber-800 border-amber-300';
       case 'B1':
-        return 'bg-green-100 text-green-800 border-green-300';
+        return 'bg-emerald-50 text-emerald-800 border-emerald-300';
       case 'B2':
-        return 'bg-teal-100 text-teal-800 border-teal-300';
+        return 'bg-emerald-100 text-emerald-900 border-emerald-400';
       case 'C1':
-        return 'bg-indigo-100 text-indigo-800 border-indigo-300';
+        return 'bg-blue-100 text-blue-900 border-blue-400';
       case 'C2':
-        return 'bg-purple-100 text-purple-800 border-purple-300';
+        return 'bg-violet-100 text-violet-900 border-violet-400';
       default:
-        return 'bg-zinc-100 text-zinc-800 border-zinc-300';
+        return 'bg-gray-100 text-gray-700 border-gray-300';
     }
   };
 
@@ -141,13 +141,16 @@ ${grammarSection}`.trim();
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-2xl shadow-lg border overflow-hidden">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
         {/* Header (Overall + CEFR badge) */}
-        <div className="p-6 border-b flex items-center justify-between bg-white">
-          <h2 className="text-2xl font-semibold text-zinc-900">Overall: {Math.round(feedback.overall ?? 0)}</h2>
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-amber-50 to-orange-50">
+          <h2 className="text-3xl font-bold text-gray-900">
+            Overall: <span className="text-amber-600">{Math.round(feedback.overall ?? 0)}</span>
+          </h2>
           <span
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium ${cefrClasses(
+            className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold ${cefrClasses(
               feedback.cefr
             )}`}
           >
@@ -156,29 +159,29 @@ ${grammarSection}`.trim();
         </div>
 
         {/* Charts row: Radar (rubric) + Bar (metrics) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 border-b">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 border-b border-gray-200 bg-gray-50">
           {/* Speaking Subscores (Radar) */}
-          <div className="rounded-xl border bg-white">
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
             <div className="p-4 pb-0">
-              <h3 className="text-base font-semibold text-zinc-900">Speaking Subscores</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Speaking Subscores</h3>
             </div>
             <div className="h-64 w-full p-4" aria-label="Radar chart of speaking subscores">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={radarData} outerRadius="80%">
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="label" tick={{ fontSize: 12 }} />
-                  <PolarRadiusAxis domain={[0, 100]} tickCount={6} tick={{ fontSize: 10 }} />
-                  <Radar dataKey="value" fill="currentColor" fillOpacity={0.15} stroke="currentColor" />
+                  <PolarGrid stroke="#e5e7eb" />
+                  <PolarAngleAxis dataKey="label" tick={{ fontSize: 12, fill: '#6b7280' }} />
+                  <PolarRadiusAxis domain={[0, 100]} tickCount={6} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                  <Radar dataKey="value" fill="#f59e0b" fillOpacity={0.25} stroke="#f59e0b" strokeWidth={2} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Delivery Metrics (Bar) */}
-          <div className="rounded-xl border bg-white">
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
             <div className="p-4 pb-0">
-              <h3 className="text-base font-semibold text-zinc-900">Delivery Metrics</h3>
-              <p className="text-sm text-zinc-600 mt-1">
+              <h3 className="text-lg font-semibold text-gray-900">Delivery Metrics</h3>
+              <p className="text-sm text-gray-600 mt-1">
                 WPM, fillers/min (lower is better), and lexical diversity (TTR).
               </p>
             </div>
@@ -186,108 +189,128 @@ ${grammarSection}`.trim();
               {metrics ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={bars}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6b7280' }} />
+                    <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} />
                     <Tooltip />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} fill="#10b981" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full grid place-items-center text-sm text-zinc-500">No metrics available</div>
+                <div className="h-full grid place-items-center text-sm text-gray-500">No metrics available</div>
               )}
             </div>
           </div>
         </div>
 
         {/* Transcript */}
-        <div className="p-6 border-b">
-          <h3 className="text-base font-semibold text-zinc-900 mb-2">Transcript</h3>
-          <div className="rounded-xl border bg-white p-4">
+        <div className="p-6 border-b border-gray-200 bg-white">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Transcript</h3>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             {feedback.transcript?.trim() ? (
-              <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-800">{feedback.transcript.trim()}</p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-800">{feedback.transcript.trim()}</p>
             ) : (
-              <p className="text-sm text-zinc-500 italic">No speech detected.</p>
+              <p className="text-sm text-gray-500 italic">No speech detected.</p>
             )}
           </div>
         </div>
 
         {/* Strengths */}
-        <div className="p-6 border-b">
-          <h3 className="text-base font-semibold text-zinc-900 mb-2">Strengths</h3>
-          <div className="rounded-xl border bg-green-50 p-4">
-            <p className="text-sm text-zinc-800">
-              {typeof feedback.strengths === 'string' 
-                ? feedback.strengths 
-                : Array.isArray(feedback.strengths) 
-                  ? feedback.strengths.join(' ') 
+        <div className="p-6 border-b border-gray-200 bg-white">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Strengths
+          </h3>
+          <div className="rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 p-4">
+            <p className="text-sm text-emerald-900 leading-relaxed font-medium">
+              {typeof feedback.strengths === 'string'
+                ? feedback.strengths
+                : Array.isArray(feedback.strengths)
+                  ? feedback.strengths.join(' ')
                   : 'No strengths feedback available.'}
             </p>
           </div>
         </div>
 
         {/* Areas for Improvement */}
-        <div className="p-6 border-b">
-          <h3 className="text-base font-semibold text-zinc-900 mb-2">Areas for Improvement</h3>
-          <div className="rounded-xl border bg-blue-50 p-4">
-            <p className="text-sm text-zinc-800">
-              {typeof feedback.improvements === 'string' 
-                ? feedback.improvements 
-                : Array.isArray(feedback.improvements) 
-                  ? feedback.improvements.join(' ') 
+        <div className="p-6 border-b border-gray-200 bg-white">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Areas for Improvement
+          </h3>
+          <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 p-4">
+            <p className="text-sm text-amber-900 leading-relaxed font-medium">
+              {typeof feedback.improvements === 'string'
+                ? feedback.improvements
+                : Array.isArray(feedback.improvements)
+                  ? feedback.improvements.join(' ')
                   : 'No improvement feedback available.'}
             </p>
           </div>
         </div>
 
         {/* Grammar Suggestions */}
-        <div className="p-6 border-b">
-          <h3 className="text-base font-semibold text-zinc-900 mb-2">Grammar Suggestions</h3>
+        <div className="p-6 border-b border-gray-200 bg-white">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Grammar Suggestions
+          </h3>
           {feedback.grammarIssues && feedback.grammarIssues.length > 0 ? (
             <ul className="space-y-3">
               {feedback.grammarIssues.map((g, i) => (
                 <li key={i} className="flex gap-3">
-                  <div className="mt-1 h-4 w-4 rounded-full border border-zinc-300" />
-                  <div>
-                    <div className="text-sm font-medium">
-                      <span className="line-through opacity-70 mr-1">{g.before}</span>
-                      <span className="mx-1">→</span>
-                      <span>{g.after}</span>
+                  <div className="mt-1 h-4 w-4 rounded-full bg-amber-500 border-2 border-amber-200 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-900">
+                      <span className="line-through opacity-60 text-rose-600 mr-1">{g.before}</span>
+                      <span className="mx-1 text-gray-400">→</span>
+                      <span className="text-emerald-700">{g.after}</span>
                     </div>
-                    <p className="text-sm text-zinc-600">{g.explanation}</p>
+                    <p className="text-sm text-gray-600 mt-1">{g.explanation}</p>
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-zinc-600">No major grammar issues detected.</p>
+            <p className="text-sm text-gray-600">No major grammar issues detected.</p>
           )}
         </div>
 
         {/* Action Plan */}
-        <div className="p-6">
-          <h3 className="text-base font-semibold text-zinc-900 mb-2">Action Plan (next attempt)</h3>
+        <div className="p-6 bg-white">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            Action Plan (next attempt)
+          </h3>
           {feedback.actionable_tips?.length ? (
             <ul className="space-y-2">
               {feedback.actionable_tips.map((tip, idx) => (
                 <li key={idx} className="flex items-start gap-2 text-sm">
-                  <svg className="mt-0.5 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg className="mt-0.5 h-4 w-4 text-emerald-600 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-zinc-800">{tip}</span>
+                  <span className="text-gray-800 leading-relaxed">{tip}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-zinc-600">No tips provided.</p>
+            <p className="text-sm text-gray-600">No tips provided.</p>
           )}
         </div>
 
         {/* Footer actions */}
-        <div className="p-6 bg-brand-background flex gap-4 justify-center">
+        <div className="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 flex gap-4 justify-center">
           <button
             onClick={onRetry}
-            className="px-6 py-3 bg-brand-amber text-white font-medium rounded-xl hover:bg-brand-amber-dark transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-amber focus:ring-offset-2"
+            className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg hover:shadow-xl"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -296,7 +319,7 @@ ${grammarSection}`.trim();
           </button>
           <button
             onClick={handleCopyFeedback}
-            className="px-6 py-3 bg-brand-surface text-brand-text-primary font-medium border border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+            className="px-6 py-3 bg-white text-gray-700 font-semibold border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -305,6 +328,7 @@ ${grammarSection}`.trim();
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }
