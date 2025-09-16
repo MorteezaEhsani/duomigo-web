@@ -13,13 +13,14 @@ const requiredServer = [
   "CLERK_SECRET_KEY",
 ];
 
-// Detect if this is a production build (Vercel production or NODE_ENV=production)
-const isProdBuild = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+// Detect if this is a production build (only Vercel production, not local builds)
+const isVercelProduction = process.env.VERCEL_ENV === "production";
 const isPreviewBuild = process.env.VERCEL_ENV === "preview";
+const isLocalBuild = !process.env.VERCEL_ENV;
 
 // Validate environment variables
-if (isProdBuild) {
-  // Production: strict validation, fail on missing
+if (isVercelProduction) {
+  // Vercel Production: strict validation, fail on missing
   const missingPublic = requiredPublic.filter(k => !process.env[k]);
   const missingServer = requiredServer.filter(k => !process.env[k]);
 
@@ -43,8 +44,18 @@ if (isProdBuild) {
     console.warn(`⚠️  Missing server env(s) in preview: ${missingServer.join(", ")}`);
   }
 } else {
-  // Development: just warn
-  console.log("📦 Building in development mode - env validation relaxed");
+  // Local builds and development: just warn
+  console.log("📦 Building locally - env validation relaxed");
+  const missingPublic = requiredPublic.filter(k => !process.env[k]);
+  const missingServer = requiredServer.filter(k => !process.env[k]);
+
+  if (missingPublic.length > 0) {
+    console.warn(`⚠️  Missing public env(s): ${missingPublic.join(", ")}`);
+  }
+
+  if (missingServer.length > 0) {
+    console.warn(`⚠️  Missing server env(s): ${missingServer.join(", ")}`);
+  }
 }
 
 const nextConfig: NextConfig = {
@@ -54,12 +65,12 @@ const nextConfig: NextConfig = {
   },
   // Suppress specific build warnings if needed
   typescript: {
-    // Don't fail build on TS errors in development
-    ignoreBuildErrors: !isProdBuild,
+    // Don't fail build on TS errors except in Vercel production
+    ignoreBuildErrors: !isVercelProduction,
   },
   eslint: {
-    // Don't fail build on ESLint errors in development
-    ignoreDuringBuilds: !isProdBuild,
+    // Don't fail build on ESLint errors except in Vercel production
+    ignoreDuringBuilds: !isVercelProduction,
   },
 };
 
