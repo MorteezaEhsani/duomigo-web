@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         p_clerk_user_id: userId,
         p_email: null,
         p_display_name: null
-      }
+      } as any
     );
 
     if (userError) {

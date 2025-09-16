@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         p_clerk_user_id: userId,
         p_email: user?.emailAddresses[0]?.emailAddress,
         p_display_name: user?.firstName || user?.username || 'User'
-      }
+      } as any
     );
 
     if (userError || !supabaseUserId) {

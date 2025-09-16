@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         p_clerk_user_id: userId,
         p_email: user?.emailAddresses[0]?.emailAddress,
         p_display_name: user?.firstName || user?.username || 'User'
-      }
+      } as any
     );
 
     if (userError || !supabaseUserId) {
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       p_tz: timezone,
       p_now_ts: new Date().toISOString(),
       p_minutes: minutes
-    });
+    } as any);
 
     if (rpcError) {
       console.error('Error upserting daily activity:', rpcError);

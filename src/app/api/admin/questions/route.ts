@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export async function DELETE(request: Request) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -19,7 +19,7 @@ export async function DELETE(request: Request) {
         p_clerk_user_id: userId,
         p_email: null,
         p_display_name: null
-      }
+      } as any
     );
 
     if (userError) {
@@ -74,7 +74,7 @@ export async function DELETE(request: Request) {
 export async function POST(request: Request) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
         p_clerk_user_id: userId,
         p_email: null,
         p_display_name: null
-      }
+      } as any
     );
 
     if (userError) {
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -156,7 +156,7 @@ export async function PUT(request: Request) {
         p_clerk_user_id: userId,
         p_email: null,
         p_display_name: null
-      }
+      } as any
     );
 
     if (userError) {
