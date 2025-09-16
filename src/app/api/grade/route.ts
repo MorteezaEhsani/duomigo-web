@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import OpenAI from 'openai';
 import { z } from 'zod';
 
@@ -9,19 +9,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Create Supabase client with service role for server operations
-function createServerSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-}
 
 // Input validation schema
 const RequestSchema = z.object({
@@ -189,7 +176,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const supabase = createServerSupabase();
+    const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID
     const { data: supabaseUserId, error: userError } = await supabase.rpc(

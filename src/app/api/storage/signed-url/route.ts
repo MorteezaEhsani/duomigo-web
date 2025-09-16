@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import { z } from 'zod';
-
-// Create Supabase client with service role for storage operations
-function getSupabaseClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-}
 
 // Input validation schema
 const RequestSchema = z.object({
@@ -49,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { bucket, path, expiresIn } = validationResult.data;
-    const supabase = getSupabaseClient();
+    const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID
     const { data: supabaseUserId, error: userError } = await supabase.rpc(

@@ -1,21 +1,7 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
+import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import PracticeRunnerClient from './PracticeRunnerClient';
-
-// Create Supabase client with service role for server operations
-function getSupabaseClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-}
 
 const VALID_PRACTICE_TYPES = [
   'listen_then_speak',
@@ -52,7 +38,7 @@ export default async function PracticeRunnerPage({ params, searchParams }: PageP
   }
 
   // Get or create Supabase user ID
-  const supabase = getSupabaseClient();
+  const supabase = getAdminSupabaseClient();
   const { data: supabaseUserId, error: userError } = await supabase.rpc(
     'get_or_create_user_by_clerk_id',
     {

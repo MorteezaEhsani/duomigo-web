@@ -2,18 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
 import { DashboardSkeleton } from '@/components/LoadingSkeleton';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import WeeklyStreak from '@/components/WeeklyStreak';
 import PracticeCard from '@/components/PracticeCard';
-
-// Create Supabase client for data operations
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface StreakData {
   current_streak: number;

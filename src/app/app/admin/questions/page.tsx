@@ -1,21 +1,7 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
+import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import AdminQuestionsClient from './AdminQuestionsClient';
-
-// Create Supabase client with service role for server operations
-function getSupabaseClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-}
 
 export default async function AdminQuestionsPage() {
   const { userId } = await auth();
@@ -25,7 +11,7 @@ export default async function AdminQuestionsPage() {
     redirect('/sign-in');
   }
 
-  const supabase = getSupabaseClient();
+  const supabase = getAdminSupabaseClient();
 
   // Get or create Supabase user ID
   const { data: supabaseUserId, error: userError } = await supabase.rpc(

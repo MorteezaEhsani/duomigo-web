@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ToastProvider } from "@/components/ToastProvider";
+import { ENV } from "@/lib/env";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,7 +26,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={ENV.CLERK_PUBLISHABLE_KEY}>
+      {/*
+        IMPORTANT: Ensure the following URLs are added to your Clerk Dashboard
+        under Allowed Origins/Redirects:
+        - https://duomigo.com
+        - https://www.duomigo.com (if not automatically redirecting to apex)
+      */}
       <html lang="en">
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}

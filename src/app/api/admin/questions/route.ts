@@ -1,20 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
-
-// Create Supabase client with service role for admin operations
-function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-}
 
 export async function DELETE(request: Request) {
   try {
@@ -24,7 +10,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = getSupabaseAdmin();
+    const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID and check admin status
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
@@ -93,7 +79,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = getSupabaseAdmin();
+    const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID and check admin status
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
@@ -161,7 +147,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = getSupabaseAdmin();
+    const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID and check admin status
     const { data: supabaseUserId, error: userError } = await supabase.rpc(

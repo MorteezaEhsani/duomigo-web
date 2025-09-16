@@ -1,20 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Create Supabase client with service role for server operations
-function getSupabaseClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-}
+import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 
 export async function GET() {
   try {
@@ -29,7 +15,7 @@ export async function GET() {
     }
 
     // Get or create Supabase user record
-    const supabase = getSupabaseClient();
+    const supabase = getAdminSupabaseClient();
     
     const { data: supabaseUserId, error } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',

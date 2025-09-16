@@ -1,19 +1,10 @@
 // app/api/attempts/[attemptId]/analyze/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-// Create Supabase client with service role for server operations
-function createServerSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
 
 // Types matching the frontend expectations
 type Rubric = {
@@ -101,7 +92,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createServerSupabase();
+    const supabase = getAdminSupabaseClient();
 
     // Ensure a Supabase user row exists / get its id
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
