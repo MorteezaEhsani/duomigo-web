@@ -28,10 +28,10 @@ interface PracticeClientProps {
   supabaseUserId?: string;
 }
 
-export default function PracticeClient({ initialUserId, supabaseUserId }: PracticeClientProps) {
+export default function PracticeClient({ initialUserId: _initialUserId, supabaseUserId }: PracticeClientProps) {
   const params = useParams();
   const router = useRouter();
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, isSignedIn, user: _user } = useUser();
   const type = params.type as string;
   
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export default function PracticeClient({ initialUserId, supabaseUserId }: Practi
 
   useEffect(() => {
     if (!isLoaded) return;
-    
+
     if (!isSignedIn) {
       toast.error('Please sign in to practice');
       router.push('/sign-in');
@@ -55,11 +55,11 @@ export default function PracticeClient({ initialUserId, supabaseUserId }: Practi
       setLoading(false);
       return;
     }
-    
+
     if (supabaseUserId) {
       startPracticeSession();
     }
-  }, [type, isLoaded, isSignedIn, supabaseUserId]);
+  }, [type, isLoaded, isSignedIn, supabaseUserId, router, startPracticeSession]);
 
   const startPracticeSession = async () => {
     try {

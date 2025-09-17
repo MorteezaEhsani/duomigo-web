@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import { z } from 'zod';
+import { GetOrCreateUserParams } from '@/types/api';
 
 // Input validation schema
 const RequestSchema = z.object({
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
         p_clerk_user_id: userId,
         p_email: user?.emailAddresses[0]?.emailAddress,
         p_display_name: user?.firstName || user?.username || 'User'
-      } as any
+      } satisfies GetOrCreateUserParams
     );
 
     if (userError || !supabaseUserId) {

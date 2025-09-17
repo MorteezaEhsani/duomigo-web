@@ -1,8 +1,32 @@
 import { auth } from '@clerk/nextjs/server';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
+import { z } from 'zod';
+import type { GetOrCreateUserParams, QuestionCreateRequest, QuestionUpdateRequest } from '@/types/api';
+import type { Question, Profile } from '@/types/database';
 
-export async function DELETE(request: Request) {
+// Validation schemas
+const QuestionCreateSchema = z.object({
+  type: z.string(),
+  level: z.string(),
+  prompt: z.string(),
+  target_lang: z.string(),
+  media_url: z.string().optional(),
+  explanation: z.string().optional(),
+  is_published: z.boolean().optional().default(true)
+});
+
+const QuestionUpdateSchema = z.object({
+  type: z.string().optional(),
+  level: z.string().optional(),
+  prompt: z.string().optional(),
+  target_lang: z.string().optional(),
+  media_url: z.string().nullable().optional(),
+  explanation: z.string().nullable().optional(),
+  is_published: z.boolean().optional()
+});
+
+export async function DELETE(request: NextRequest) {
   try {
     const { userId } = await auth();
 
@@ -13,13 +37,14 @@ export async function DELETE(request: Request) {
     const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID and check admin status
+    const rpcParams: GetOrCreateUserParams = {
+      p_clerk_user_id: userId,
+      p_email: undefined,
+      p_display_name: undefined
+    };
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',
-      {
-        p_clerk_user_id: userId,
-        p_email: null,
-        p_display_name: null
-      } as any
+      rpcParams as unknown as undefined
     );
 
     if (userError) {
@@ -33,7 +58,7 @@ export async function DELETE(request: Request) {
 
     // Check if user is admin
     const { data: profile } = await supabase
-      .from('profiles')
+      .from<'profiles', Profile>('profiles')
       .select('is_admin')
       .eq('user_id', supabaseUserId)
       .single();
@@ -71,7 +96,7 @@ export async function DELETE(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
 
@@ -82,13 +107,14 @@ export async function POST(request: Request) {
     const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID and check admin status
+    const rpcParams: GetOrCreateUserParams = {
+      p_clerk_user_id: userId,
+      p_email: undefined,
+      p_display_name: undefined
+    };
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',
-      {
-        p_clerk_user_id: userId,
-        p_email: null,
-        p_display_name: null
-      } as any
+      rpcParams as unknown as undefined
     );
 
     if (userError) {
@@ -102,7 +128,7 @@ export async function POST(request: Request) {
 
     // Check if user is admin
     const { data: profile } = await supabase
-      .from('profiles')
+      .from<'profiles', Profile>('profiles')
       .select('is_admin')
       .eq('user_id', supabaseUserId)
       .single();
@@ -111,13 +137,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
-    const body = await request.json();
-    console.log('Creating question with body:', body);
+    const body = await request.json() as unknown;
+    const questionData = QuestionCreateSchema.parse(body);
+    console.log('Creating question with body:', questionData);
 
     // Insert the question using service role
     const { data, error: insertError } = await supabase
-      .from('questions')
-      .insert(body)
+      .from<'questions', Question>('questions')
+      .insert(questionData)
       .select()
       .single();
 
@@ -139,7 +166,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
     const { userId } = await auth();
 
@@ -150,13 +177,14 @@ export async function PUT(request: Request) {
     const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID and check admin status
+    const rpcParams: GetOrCreateUserParams = {
+      p_clerk_user_id: userId,
+      p_email: undefined,
+      p_display_name: undefined
+    };
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',
-      {
-        p_clerk_user_id: userId,
-        p_email: null,
-        p_display_name: null
-      } as any
+      rpcParams as unknown as undefined
     );
 
     if (userError) {
@@ -170,7 +198,7 @@ export async function PUT(request: Request) {
 
     // Check if user is admin
     const { data: profile } = await supabase
-      .from('profiles')
+      .from<'profiles', Profile>('profiles')
       .select('is_admin')
       .eq('user_id', supabaseUserId)
       .single();
@@ -186,13 +214,14 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Question ID required' }, { status: 400 });
     }
 
-    const body = await request.json();
-    console.log('Updating question', questionId, 'with body:', body);
+    const body = await request.json() as unknown;
+    const updateData = QuestionUpdateSchema.parse(body);
+    console.log('Updating question', questionId, 'with body:', updateData);
 
     // Update the question using service role
     const { data, error: updateError } = await supabase
-      .from('questions')
-      .update(body)
+      .from<'questions', Question>('questions')
+      .update(updateData)
       .eq('id', questionId)
       .select()
       .single();

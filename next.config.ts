@@ -16,7 +16,6 @@ const requiredServer = [
 // Detect if this is a production build (only Vercel production, not local builds)
 const isVercelProduction = process.env.VERCEL_ENV === "production";
 const isPreviewBuild = process.env.VERCEL_ENV === "preview";
-const isLocalBuild = !process.env.VERCEL_ENV;
 
 // Validate environment variables
 if (isVercelProduction) {

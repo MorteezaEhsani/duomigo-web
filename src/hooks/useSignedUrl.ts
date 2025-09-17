@@ -77,7 +77,7 @@ export function useSignedUrl({
 
   useEffect(() => {
     fetchSignedUrl();
-  }, [bucket, path, enabled, expiresIn]);
+  }, [bucket, path, enabled, expiresIn, fetchSignedUrl]);
 
   // Set up auto-refresh before expiry
   useEffect(() => {
@@ -92,7 +92,7 @@ export function useSignedUrl({
     }, refreshTime);
 
     return () => clearTimeout(timer);
-  }, [url, expiresIn, enabled]);
+  }, [url, expiresIn, enabled, fetchSignedUrl]);
 
   return {
     url,

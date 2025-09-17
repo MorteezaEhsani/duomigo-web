@@ -8,7 +8,7 @@ interface ProfileEditFormProps {
   currentDisplayName: string;
 }
 
-export default function ProfileEditForm({ userId, currentDisplayName }: ProfileEditFormProps) {
+export default function ProfileEditForm({ userId: _userId, currentDisplayName }: ProfileEditFormProps) {
   const router = useRouter();
   const [displayName, setDisplayName] = useState(currentDisplayName);
   const [loading, setLoading] = useState(false);

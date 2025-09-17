@@ -1,8 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
+import type { GetOrCreateUserParams } from '@/types/api';
+import type { Profile } from '@/types/database';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
     
@@ -13,13 +15,14 @@ export async function POST(request: Request) {
     const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID and check admin status
+    const rpcParams: GetOrCreateUserParams = {
+      p_clerk_user_id: userId,
+      p_email: undefined,
+      p_display_name: undefined
+    };
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',
-      {
-        p_clerk_user_id: userId,
-        p_email: null,
-        p_display_name: null
-      } as any
+      rpcParams as unknown as undefined
     );
 
     if (userError) {
@@ -33,7 +36,7 @@ export async function POST(request: Request) {
 
     // Check if user is admin
     const { data: profile } = await supabase
-      .from('profiles')
+      .from<'profiles', Profile>('profiles')
       .select('is_admin')
       .eq('user_id', supabaseUserId)
       .single();
@@ -70,7 +73,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Upload to Supabase Storage using service role
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: _uploadData, error: uploadError } = await supabase.storage
       .from('question_media')
       .upload(fileName, buffer, {
         contentType: file.type,

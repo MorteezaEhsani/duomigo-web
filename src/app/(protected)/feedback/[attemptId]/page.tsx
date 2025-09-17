@@ -146,7 +146,7 @@ export default function FeedbackPage() {
 
   useEffect(() => {
     fetchAnalysis();
-  }, [attemptId]);
+  }, [attemptId, fetchAnalysis]);
 
   // Handle retry
   const handleRetry = () => {
@@ -193,7 +193,7 @@ ${data.grammarIssues.map(issue =>
   };
 
   // Get color based on score
-  const getScoreColor = (score: number, max: number = 100) => {
+  const _getScoreColor = (score: number, max: number = 100) => {
     const percentage = (score / max) * 100;
     if (percentage >= 80) return 'text-green-600 bg-green-50 border-green-200';
     if (percentage >= 60) return 'text-blue-600 bg-blue-50 border-blue-200';

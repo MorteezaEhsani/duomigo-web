@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import Image from 'next/image';
 import { QuestionSchema } from './AdminQuestionsClient';
 
 interface Question {
@@ -198,9 +199,11 @@ export default function QuestionForm({
               </label>
               {formData.image_url && (
                 <div className="mb-3">
-                  <img 
-                    src={formData.image_url} 
-                    alt="Question image" 
+                  <Image
+                    src={formData.image_url}
+                    alt="Question image"
+                    width={400}
+                    height={192}
                     className="w-full max-h-48 object-contain rounded-lg bg-zinc-100"
                   />
                 </div>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { UserButton, useUser, SignInButton } from '@clerk/nextjs';
 
 export default function NavClerk() {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, isSignedIn, user: _user } = useUser();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-zinc-200">

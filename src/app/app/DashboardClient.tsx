@@ -30,7 +30,7 @@ export default function DashboardClient({ userId, initialStreakData }: Dashboard
     if (user && userId) {
       initializeUser();
     }
-  }, [user, userId]);
+  }, [user, userId, initializeUser]);
 
   const initializeUser = async () => {
     try {

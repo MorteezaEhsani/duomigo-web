@@ -1,8 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { GetOrCreateUserParams } from '@/types/api';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
     
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
         p_clerk_user_id: userId,
         p_email: null,
         p_display_name: null
-      } as any
+      } satisfies GetOrCreateUserParams
     );
 
     if (userError) {

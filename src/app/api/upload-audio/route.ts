@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
+import { GetOrCreateUserParams } from '@/types/api';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
         p_clerk_user_id: userId,
         p_email: user?.emailAddresses[0]?.emailAddress,
         p_display_name: user?.firstName || user?.username || 'User'
-      } as any
+      } satisfies GetOrCreateUserParams
     );
 
     if (userError || !supabaseUserId) {
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: _uploadData, error: uploadError } = await supabase.storage
       .from('attempts')
       .upload(fileName, buffer, {
         contentType: audioFile.type,

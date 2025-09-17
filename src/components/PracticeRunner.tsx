@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { toast } from 'sonner';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { supabase } from '@/lib/supabase/client';
@@ -64,24 +65,148 @@ export default function PracticeRunner({
   const [phase, setPhase] = useState<Phase>('prep');
   const [prepTimeLeft, setPrepTimeLeft] = useState(question.prep_seconds || 20);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [_processing, setProcessing] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [audioLoaded, setAudioLoaded] = useState(false);
-  const [prepStarted, setPrepStarted] = useState(false);
+  const [_prepStarted, setPrepStarted] = useState(false);
   const prepTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isMountedRef = useRef(true);
 
+  const handleRecordingComplete = useCallback(async (blob: Blob) => {
+    setPhase('processing');
+    setProcessing(true);
+
+    try {
+      // Generate attempt ID
+      const attemptId = crypto.randomUUID();
+
+      // Upload audio to storage
+      const formData = new FormData();
+      formData.append('audio', blob, 'recording.webm');
+      formData.append('attemptId', attemptId);
+
+      const uploadResponse = await fetch('/api/upload-audio', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload audio');
+      }
+
+      const { audioUrl } = await uploadResponse.json();
+
+      // Create attempt record
+      const { error: attemptError } = await supabase
+        .from('attempts')
+        .insert({
+          id: attemptId,
+          session_id: sessionId,
+          question_id: question.id,
+          user_id: supabaseUserId,
+          type_id: question.type,
+          prompt_text: question.prompt,
+          audio_url: audioUrl,
+          transcript: null, // Will be filled by grading
+          score: null, // Will be filled by grading
+          feedback: null, // Will be filled by grading
+          attempted_at: new Date().toISOString()
+        });
+
+      if (attemptError) {
+        throw attemptError;
+      }
+
+      // Update daily activity
+      await fetch('/api/activity/ping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minutes: 1 })
+      });
+
+      // Trigger grading
+      try {
+        console.log('Starting grading for attempt:', attemptId);
+        const gradeResponse = await fetch('/api/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId })
+        });
+
+        if (gradeResponse.ok) {
+          const gradeData = await gradeResponse.json();
+          console.log('Grading response:', gradeData);
+
+          const gradingFeedback = gradeData.feedback;
+          if (!gradingFeedback) {
+            throw new Error('No feedback in grading response');
+          }
+
+          // Store feedback in state
+          const feedbackData = {
+            overall: gradingFeedback.overall || 0,
+            fluency: gradingFeedback.fluency || 0,
+            pronunciation: gradingFeedback.pronunciation || 0,
+            grammar: gradingFeedback.grammar || 0,
+            vocabulary: gradingFeedback.vocabulary || 0,
+            coherence: gradingFeedback.coherence || 0,
+            task: gradingFeedback.task,
+            strengths: gradingFeedback.strengths || '',
+            improvements: gradingFeedback.improvements || '',
+            actionable_tips: gradingFeedback.actionable_tips || [],
+            grammarIssues: gradingFeedback.grammarIssues || [],
+            transcript: gradingFeedback.transcript,
+            metrics: gradingFeedback.metrics,
+            cefr: gradingFeedback.cefr,
+          };
+
+          console.log('Setting feedback:', feedbackData);
+          setFeedback(feedbackData);
+          setProcessing(false);
+          setPhase('feedback');
+          toast.success('Recording graded successfully!');
+        } else {
+          const errorText = await gradeResponse.text();
+          console.error('Grading failed:', errorText);
+          toast.warning('Recording submitted, but grading is pending');
+          setProcessing(false);
+          setPhase('complete');
+
+          // Still redirect after delay if grading fails
+          setTimeout(() => {
+            router.push('/app');
+          }, 3000);
+        }
+      } catch (err) {
+        console.error('Error calling grade API:', err);
+        toast.warning('Recording submitted, but grading is pending');
+        setProcessing(false);
+        setPhase('complete');
+
+        setTimeout(() => {
+          router.push('/app');
+        }, 3000);
+      }
+
+    } catch (err) {
+      console.error('Error processing recording:', err);
+      toast.error('Failed to submit recording');
+      setProcessing(false);
+      setPhase('record');
+    }
+  }, [sessionId, question.id, question.type, question.prompt, supabaseUserId, router]);
+
   const {
     isRecording,
     recordingTime,
-    audioURL,
+    audioURL: _audioURL,
     error: recordError,
     startRecording,
     stopRecording,
   } = useAudioRecorder({
     maxDuration: question.max_seconds,
-    onRecordingComplete: (blob) => handleRecordingComplete(blob)
+    onRecordingComplete: handleRecordingComplete
   });
 
   // Monitor recording state for auto-stop
@@ -91,6 +216,147 @@ export default function PracticeRunner({
       // Recording was auto-stopped, handleRecordingComplete will be called by the hook
     }
   }, [isRecording, recordingTime, phase, question.max_seconds]);
+
+  const handlePrepComplete = useCallback(() => {
+    setPhase('record');
+    // Auto-start recording
+    setTimeout(() => {
+      startRecording();
+    }, 500);
+  }, [startRecording]);
+
+  const handleSkipPrep = useCallback(() => {
+    if (prepTimerRef.current) {
+      clearTimeout(prepTimerRef.current);
+    }
+    setPrepTimeLeft(0);
+    handlePrepComplete();
+  }, [handlePrepComplete]);
+
+  const handleFinishRecording = useCallback(() => {
+    if (recordingTime < question.min_seconds) {
+      toast.error(`Please speak for at least ${question.min_seconds} seconds`);
+      return;
+    }
+    stopRecording();
+  }, [recordingTime, question.min_seconds, stopRecording]);
+
+  const handlePlayAudio = useCallback(async () => {
+    if (question.type !== 'listen_then_speak') return;
+
+    // Prevent multiple simultaneous plays
+    if (isPlaying) return;
+
+    setIsPlaying(true);
+    try {
+      // Fetch audio from TTS API
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: question.prompt }),
+      });
+
+      if (!response.ok) {
+        // Try to parse error response
+        let errorMessage = 'Failed to generate audio';
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const error = await response.json();
+            errorMessage = error.error || errorMessage;
+          } else {
+            // Response is not JSON (might be HTML error page)
+            errorMessage = `TTS service error (${response.status})`;
+          }
+        } catch (e) {
+          errorMessage = `TTS service error (${response.status})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Check if response is actually audio
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('audio')) {
+        throw new Error('Invalid response from TTS service');
+      }
+
+      // Create audio blob and play it
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // Clean up previous audio reference
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+
+      // Create and play new audio
+      audioRef.current = new Audio(audioUrl);
+
+      audioRef.current.onended = () => {
+        if (isMountedRef.current) {
+          setIsPlaying(false);
+        }
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audioRef.current.onerror = (_e) => {
+        // Only show error if component is still mounted and it's a real error
+        if (isMountedRef.current && audioRef.current?.error?.code !== 4) { // 4 = MEDIA_ERR_SRC_NOT_SUPPORTED (happens during cleanup)
+          toast.error('Audio playback failed - check your browser settings');
+        }
+        if (isMountedRef.current) {
+          setIsPlaying(false);
+        }
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audioRef.current.play();
+
+      // Mark audio as loaded and start prep timer
+      if (!audioLoaded) {
+        console.log('Audio loaded, starting prep timer with', question.prep_seconds || 20, 'seconds');
+        setAudioLoaded(true);
+        setPrepStarted(true);
+      }
+    } catch (err) {
+      console.error('Error playing audio:', err);
+      const message = err instanceof Error ? err.message : 'Failed to play audio';
+      toast.error(message);
+
+      // If no API key, show helpful message
+      if (message.includes('TTS service')) {
+        toast.info('Tip: Add OPENAI_API_KEY to .env.local for text-to-speech');
+      }
+
+      setIsPlaying(false);
+    }
+  }, [question.type, question.prompt, question.prep_seconds, isPlaying, audioLoaded, isMountedRef]);
+
+  const handleRetry = useCallback(() => {
+    // Clean up any existing audio
+    if (audioRef.current) {
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
+      try {
+        audioRef.current.pause();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+      audioRef.current.src = '';
+      audioRef.current = null;
+    }
+
+    // Reset state for new attempt
+    setPhase('prep');
+    setPrepTimeLeft(question.prep_seconds || 20);
+    setIsPlaying(false);
+    setProcessing(false);
+    setFeedback(null);
+    setAudioLoaded(false);
+  }, [question.prep_seconds]);
 
   // Prep timer - only starts after audio loads for listen_then_speak
   useEffect(() => {
@@ -116,7 +382,7 @@ export default function PracticeRunner({
         clearTimeout(prepTimerRef.current);
       }
     };
-  }, [phase, prepTimeLeft, audioLoaded, question.type]);
+  }, [phase, prepTimeLeft, audioLoaded, question.type, handlePrepComplete]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -207,252 +473,11 @@ export default function PracticeRunner({
       const timer = setTimeout(() => {
         handlePlayAudio();
       }, 500);
-      
+
       return () => clearTimeout(timer);
     }
-  }, [question.type, phase, audioLoaded, isPlaying]);
+  }, [question.type, phase, audioLoaded, isPlaying, handlePlayAudio]);
 
-  const handlePrepComplete = () => {
-    setPhase('record');
-    // Auto-start recording
-    setTimeout(() => {
-      startRecording();
-    }, 500);
-  };
-
-  const handleSkipPrep = () => {
-    if (prepTimerRef.current) {
-      clearTimeout(prepTimerRef.current);
-    }
-    setPrepTimeLeft(0);
-    handlePrepComplete();
-  };
-
-  const handlePlayAudio = async () => {
-    if (question.type !== 'listen_then_speak') return;
-
-    // Prevent multiple simultaneous plays
-    if (isPlaying) return;
-    
-    setIsPlaying(true);
-    try {
-      // Fetch audio from TTS API
-      const response = await fetch('/api/tts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: question.prompt }),
-      });
-
-      if (!response.ok) {
-        // Try to parse error response
-        let errorMessage = 'Failed to generate audio';
-        try {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const error = await response.json();
-            errorMessage = error.error || errorMessage;
-          } else {
-            // Response is not JSON (might be HTML error page)
-            errorMessage = `TTS service error (${response.status})`;
-          }
-        } catch (e) {
-          errorMessage = `TTS service error (${response.status})`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Check if response is actually audio
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('audio')) {
-        throw new Error('Invalid response from TTS service');
-      }
-
-      // Create audio blob and play it
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      // Clean up previous audio reference
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
-
-      // Create and play new audio
-      audioRef.current = new Audio(audioUrl);
-      
-      audioRef.current.onended = () => {
-        if (isMountedRef.current) {
-          setIsPlaying(false);
-        }
-        URL.revokeObjectURL(audioUrl);
-      };
-      
-      audioRef.current.onerror = (e) => {
-        // Only show error if component is still mounted and it's a real error
-        if (isMountedRef.current && audioRef.current?.error?.code !== 4) { // 4 = MEDIA_ERR_SRC_NOT_SUPPORTED (happens during cleanup)
-          toast.error('Audio playback failed - check your browser settings');
-        }
-        if (isMountedRef.current) {
-          setIsPlaying(false);
-        }
-        URL.revokeObjectURL(audioUrl);
-      };
-      
-      await audioRef.current.play();
-      
-      // Mark audio as loaded and start prep timer
-      if (!audioLoaded) {
-        console.log('Audio loaded, starting prep timer with', question.prep_seconds || 20, 'seconds');
-        setAudioLoaded(true);
-        setPrepStarted(true);
-      }
-    } catch (err) {
-      console.error('Error playing audio:', err);
-      const message = err instanceof Error ? err.message : 'Failed to play audio';
-      toast.error(message);
-      
-      // If no API key, show helpful message
-      if (message.includes('TTS service')) {
-        toast.info('Tip: Add OPENAI_API_KEY to .env.local for text-to-speech');
-      }
-      
-      setIsPlaying(false);
-    }
-  };
-
-  const handleFinishRecording = () => {
-    if (recordingTime < question.min_seconds) {
-      toast.error(`Please speak for at least ${question.min_seconds} seconds`);
-      return;
-    }
-    stopRecording();
-  };
-
-  const handleRecordingComplete = async (blob: Blob) => {
-    setPhase('processing');
-    setProcessing(true);
-
-    try {
-      // Generate attempt ID
-      const attemptId = crypto.randomUUID();
-
-      // Upload audio to storage
-      const formData = new FormData();
-      formData.append('audio', blob, 'recording.webm');
-      formData.append('attemptId', attemptId);
-
-      const uploadResponse = await fetch('/api/upload-audio', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload audio');
-      }
-
-      const { audioUrl } = await uploadResponse.json();
-
-      // Create attempt record
-      const { error: attemptError } = await supabase
-        .from('attempts')
-        .insert({
-          id: attemptId,
-          session_id: sessionId,
-          question_id: question.id,
-          user_id: supabaseUserId,
-          type_id: question.type,
-          prompt_text: question.prompt,
-          audio_url: audioUrl,
-          transcript: null, // Will be filled by grading
-          score: null, // Will be filled by grading
-          feedback: null, // Will be filled by grading
-          attempted_at: new Date().toISOString()
-        });
-
-      if (attemptError) {
-        throw attemptError;
-      }
-
-      // Update daily activity
-      await fetch('/api/activity/ping', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ minutes: 1 })
-      });
-
-      // Trigger grading
-      try {
-        console.log('Starting grading for attempt:', attemptId);
-        const gradeResponse = await fetch('/api/grade', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ attemptId })
-        });
-
-        if (gradeResponse.ok) {
-          const gradeData = await gradeResponse.json();
-          console.log('Grading response:', gradeData);
-          
-          const gradingFeedback = gradeData.feedback;
-          if (!gradingFeedback) {
-            throw new Error('No feedback in grading response');
-          }
-          
-          // Store feedback in state
-          const feedbackData = {
-            overall: gradingFeedback.overall || 0,
-            fluency: gradingFeedback.fluency || 0,
-            pronunciation: gradingFeedback.pronunciation || 0,
-            grammar: gradingFeedback.grammar || 0,
-            vocabulary: gradingFeedback.vocabulary || 0,
-            coherence: gradingFeedback.coherence || 0,
-            task: gradingFeedback.task,
-            strengths: gradingFeedback.strengths || '',
-            improvements: gradingFeedback.improvements || '',
-            actionable_tips: gradingFeedback.actionable_tips || [],
-            grammarIssues: gradingFeedback.grammarIssues || [],
-            transcript: gradingFeedback.transcript,
-            metrics: gradingFeedback.metrics,
-            cefr: gradingFeedback.cefr,
-          };
-          
-          console.log('Setting feedback:', feedbackData);
-          setFeedback(feedbackData);
-          setProcessing(false);
-          setPhase('feedback');
-          toast.success('Recording graded successfully!');
-        } else {
-          const errorText = await gradeResponse.text();
-          console.error('Grading failed:', errorText);
-          toast.warning('Recording submitted, but grading is pending');
-          setProcessing(false);
-          setPhase('complete');
-          
-          // Still redirect after delay if grading fails
-          setTimeout(() => {
-            router.push('/app');
-          }, 3000);
-        }
-      } catch (err) {
-        console.error('Error calling grade API:', err);
-        toast.warning('Recording submitted, but grading is pending');
-        setProcessing(false);
-        setPhase('complete');
-        
-        setTimeout(() => {
-          router.push('/app');
-        }, 3000);
-      }
-
-    } catch (err) {
-      console.error('Error processing recording:', err);
-      toast.error('Failed to submit recording');
-      setProcessing(false);
-      setPhase('record');
-    }
-  };
 
   // Format time display
   const formatTime = (seconds: number) => {
@@ -461,29 +486,6 @@ export default function PracticeRunner({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Handle retry
-  const handleRetry = () => {
-    // Clean up any existing audio
-    if (audioRef.current) {
-      audioRef.current.onended = null;
-      audioRef.current.onerror = null;
-      try {
-        audioRef.current.pause();
-      } catch (e) {
-        // Ignore errors during cleanup
-      }
-      audioRef.current.src = '';
-      audioRef.current = null;
-    }
-    
-    // Reset state for new attempt
-    setPhase('prep');
-    setPrepTimeLeft(question.prep_seconds || 20);
-    setIsPlaying(false);
-    setProcessing(false);
-    setFeedback(null);
-    setAudioLoaded(false);
-  };
 
   // Keyboard shortcuts - moved here after function definitions
   useEffect(() => {
@@ -517,7 +519,7 @@ export default function PracticeRunner({
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [phase, isRecording, recordingTime, question.min_seconds]);
+  }, [phase, isRecording, recordingTime, question.min_seconds, handleSkipPrep, handleFinishRecording]);
 
   // Render prep phase
   if (phase === 'prep') {
@@ -573,9 +575,11 @@ export default function PracticeRunner({
           {question.type === 'speak_about_photo' && question.image_url && (
             <div className="mb-6">
               <div className="bg-gray-100 p-4 rounded-lg">
-                <img 
-                  src={question.image_url} 
+                <Image
+                  src={question.image_url}
                   alt="Describe this image"
+                  width={400}
+                  height={400}
                   className="w-full max-h-[400px] object-contain rounded-lg"
                 />
               </div>
@@ -665,9 +669,11 @@ export default function PracticeRunner({
           {question.type === 'speak_about_photo' && question.image_url && (
             <div className="mb-6">
               <div className="bg-gray-100 p-3 rounded-lg">
-                <img 
-                  src={question.image_url} 
+                <Image
+                  src={question.image_url}
                   alt="Describe this image"
+                  width={320}
+                  height={320}
                   className="w-full max-h-80 object-contain rounded"
                 />
               </div>

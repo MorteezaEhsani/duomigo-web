@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
+import { GetOrCreateUserParams } from '@/types/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -101,7 +102,7 @@ export async function POST(
         p_clerk_user_id: userId,
         p_email: user?.emailAddresses[0]?.emailAddress,
         p_display_name: user?.firstName || user?.username || 'User',
-      } as any
+      } satisfies GetOrCreateUserParams
     );
     if (userError || !supabaseUserId) {
       console.error('Error getting user:', userError);

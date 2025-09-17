@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import { z } from 'zod';
+import type { GetOrCreateUserParams, UpsertDailyActivityParams, StreakInfo } from '@/types/api';
+import type { Profile } from '@/types/database';
 
 // Request body schema
 const ActivityPingSchema = z.object({
@@ -49,13 +51,14 @@ export async function POST(request: NextRequest) {
     const supabase = getAdminSupabaseClient();
     
     // Get or create Supabase user ID
+    const rpcParams: GetOrCreateUserParams = {
+      p_clerk_user_id: userId,
+      p_email: user?.emailAddresses[0]?.emailAddress,
+      p_display_name: user?.firstName || user?.username || 'User'
+    };
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',
-      {
-        p_clerk_user_id: userId,
-        p_email: user?.emailAddresses[0]?.emailAddress,
-        p_display_name: user?.firstName || user?.username || 'User'
-      } as any
+      rpcParams as unknown as undefined
     );
 
     if (userError || !supabaseUserId) {
@@ -71,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Get user's timezone from profile
     const { data: profile } = await supabase
-      .from('profiles')
+      .from<'profiles', Profile>('profiles')
       .select('timezone')
       .eq('user_id', supabaseUserId)
       .single();
@@ -79,12 +82,16 @@ export async function POST(request: NextRequest) {
     const timezone = profile?.timezone || clientTimezone || 'America/Los_Angeles';
 
     // Call timezone-aware RPC to upsert daily activity
-    const { error: rpcError } = await supabase.rpc('upsert_daily_activity_tz_clerk', {
+    const activityParams: UpsertDailyActivityParams = {
       p_user_id: supabaseUserId,
       p_tz: timezone,
       p_now_ts: new Date().toISOString(),
       p_minutes: minutes
-    } as any);
+    };
+    const { error: rpcError } = await supabase.rpc(
+      'upsert_daily_activity_tz_clerk',
+      activityParams as unknown as undefined
+    );
 
     if (rpcError) {
       console.error('Error upserting daily activity:', rpcError);
@@ -100,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     // Get updated streak info
     const { data: streak } = await supabase
-      .from('streaks')
+      .from<'streaks', StreakInfo>('streaks')
       .select('current_streak, best_streak')
       .eq('user_id', supabaseUserId)
       .single();

@@ -22,7 +22,7 @@ describe('WeeklyStreak Component', () => {
   });
 
   it('calculates and displays correct fill width based on progress', () => {
-    const { container } = render(
+    const { container: _container } = render(
       <WeeklyStreak
         currentDayIndex={6}
         progress={0.8}
