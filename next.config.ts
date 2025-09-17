@@ -17,11 +17,27 @@ const requiredServer = [
 const isVercelProduction = process.env.VERCEL_ENV === "production";
 const isPreviewBuild = process.env.VERCEL_ENV === "preview";
 
+// Debug logging
+console.log(`🔍 Build environment debug:`);
+console.log(`  VERCEL_ENV: ${process.env.VERCEL_ENV}`);
+console.log(`  NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`  isVercelProduction: ${isVercelProduction}`);
+console.log(`  isPreviewBuild: ${isPreviewBuild}`);
+
 // Validate environment variables
 if (isVercelProduction) {
   // Vercel Production: strict validation, fail on missing
+  console.log(`🔍 Checking production environment variables...`);
   const missingPublic = requiredPublic.filter(k => !process.env[k]);
   const missingServer = requiredServer.filter(k => !process.env[k]);
+
+  // Debug: show which variables are set/missing
+  requiredPublic.forEach(k => {
+    console.log(`  ${k}: ${process.env[k] ? 'SET' : 'MISSING'}`);
+  });
+  requiredServer.forEach(k => {
+    console.log(`  ${k}: ${process.env[k] ? 'SET' : 'MISSING'}`);
+  });
 
   if (missingPublic.length > 0) {
     throw new Error(`Missing required public env(s) in production: ${missingPublic.join(", ")}`);
