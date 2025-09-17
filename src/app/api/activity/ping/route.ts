@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', supabaseUserId)
       .single();
 
-    const timezone = profile?.timezone || clientTimezone || 'America/Los_Angeles';
+    const timezone = (profile as { timezone?: string } | null)?.timezone || clientTimezone || 'America/Los_Angeles';
 
     // Call timezone-aware RPC to upsert daily activity
     const activityParams: UpsertDailyActivityParams = {
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       message: 'Activity updated successfully',
       minutes,
       timezone,
-      streak: streak || { current_streak: 0, best_streak: 0 }
+      streak: (streak as { current_streak: number; best_streak: number } | null) || { current_streak: 0, best_streak: 0 }
     });
   } catch (error) {
     console.error('Error in activity ping:', error);
