@@ -9,12 +9,12 @@ const isProd = process.env.NODE_ENV === "production";
 const isVercelProd = process.env.VERCEL_ENV === "production";
 const isPreview = process.env.VERCEL_ENV === "preview";
 
-// Define the environment object
+// Define the environment object with temporary fallbacks for missing variables
 export const ENV = {
-  SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-  SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+  SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder',
+  CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '',
+  SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || "https://duomigo.com",
 } as const;
 
 // Runtime validation (client-side)
