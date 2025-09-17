@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Get user's timezone from profile
     const { data: profile } = await supabase
-      .from<'profiles', Profile>('profiles')
+      .from('profiles')
       .select('timezone')
       .eq('user_id', supabaseUserId)
       .single();
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     // Get updated streak info
     const { data: streak } = await supabase
-      .from<'streaks', StreakInfo>('streaks')
+      .from('streaks')
       .select('current_streak, best_streak')
       .eq('user_id', supabaseUserId)
       .single();

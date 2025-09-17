@@ -58,7 +58,7 @@ export async function DELETE(request: NextRequest) {
 
     // Check if user is admin
     const { data: profile } = await supabase
-      .from('profiles')
+      .from<'profiles', Profile>('profiles')
       .select('is_admin')
       .eq('user_id', supabaseUserId)
       .single();
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user is admin
     const { data: profile } = await supabase
-      .from('profiles')
+      .from<'profiles', Profile>('profiles')
       .select('is_admin')
       .eq('user_id', supabaseUserId)
       .single();
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
 
     // Insert the question using service role
     const { data, error: insertError } = await supabase
-      .from('questions')
+      .from<'questions', Question>('questions')
       .insert(questionData)
       .select()
       .single();
@@ -198,7 +198,7 @@ export async function PUT(request: NextRequest) {
 
     // Check if user is admin
     const { data: profile } = await supabase
-      .from('profiles')
+      .from<'profiles', Profile>('profiles')
       .select('is_admin')
       .eq('user_id', supabaseUserId)
       .single();
@@ -220,7 +220,7 @@ export async function PUT(request: NextRequest) {
 
     // Update the question using service role
     const { data, error: updateError } = await supabase
-      .from('questions')
+      .from<'questions', Question>('questions')
       .update(updateData)
       .eq('id', questionId)
       .select()
