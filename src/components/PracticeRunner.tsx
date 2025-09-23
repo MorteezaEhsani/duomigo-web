@@ -98,23 +98,65 @@ export default function PracticeRunner({
       const { audioUrl } = await uploadResponse.json();
 
       // Create attempt record
+      const isTemporarySession = sessionId.startsWith('temp_');
+      let actualSessionId = sessionId;
+
+      // If it's a temporary session, create a real practice session now
+      if (isTemporarySession) {
+        const { data: newSession, error: sessionError } = await supabase
+          .from('practice_sessions')
+          .insert({
+            user_id: supabaseUserId,
+            started_at: new Date().toISOString(),
+            ended_at: null // Will be updated when grading completes
+          })
+          .select()
+          .single();
+
+        if (sessionError || !newSession) {
+          console.error('Error creating practice session:', sessionError);
+          throw new Error('Failed to create practice session');
+        }
+
+        actualSessionId = newSession.id;
+        console.log('Created new practice session:', actualSessionId);
+      }
+
+      console.log('Question details:', {
+        id: question.id,
+        type: question.type,
+        prompt: question.prompt?.substring(0, 100) // First 100 chars
+      });
+
+      // Build the insert object
+      const attemptData: any = {
+        id: attemptId,
+        session_id: actualSessionId,
+        question_id: question.id,
+        user_id: supabaseUserId,
+        type_id: question.type,
+        prompt_text: question.prompt || '',
+        audio_url: audioUrl,
+        transcript: null, // Will be filled by grading
+        score: null, // Will be filled by grading
+        feedback: null, // Will be filled by grading
+        attempted_at: new Date().toISOString()
+      };
+
+      console.log('Inserting attempt with data:', attemptData);
+
       const { error: attemptError } = await supabase
         .from('attempts')
-        .insert({
-          id: attemptId,
-          session_id: sessionId,
-          question_id: question.id,
-          user_id: supabaseUserId,
-          type_id: question.type,
-          prompt_text: question.prompt,
-          audio_url: audioUrl,
-          transcript: null, // Will be filled by grading
-          score: null, // Will be filled by grading
-          feedback: null, // Will be filled by grading
-          attempted_at: new Date().toISOString()
-        });
+        .insert(attemptData);
 
       if (attemptError) {
+        console.error('Attempt insert error:', JSON.stringify(attemptError, null, 2));
+        console.error('Attempt insert error details:', {
+          message: attemptError.message,
+          code: attemptError.code,
+          details: attemptError.details,
+          hint: attemptError.hint
+        });
         throw attemptError;
       }
 
@@ -524,10 +566,10 @@ export default function PracticeRunner({
   // Render prep phase
   if (phase === 'prep') {
     return (
-      <div className="h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden">
-        <div className="max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+      <div className="h-screen bg-gray-50 p-2 sm:p-4 md:p-6 flex flex-col overflow-hidden">
+        <div className="max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 flex flex-col overflow-y-auto max-h-full">
+          <div className="text-center mb-3 sm:mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">
               Get Ready
             </h2>
             {question.type === 'listen_then_speak' && !audioLoaded ? (
@@ -537,20 +579,20 @@ export default function PracticeRunner({
               </div>
             ) : (
               <>
-                <div className="text-4xl font-mono font-bold text-amber-500">
+                <div className="text-3xl sm:text-4xl font-mono font-bold text-amber-500">
                   {formatTime(prepTimeLeft)}
                 </div>
-                <p className="text-sm text-gray-600 mt-2">Preparation time</p>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2">Preparation time</p>
               </>
             )}
           </div>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+          <div className="mb-3 sm:mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
               {question.type === 'read_then_speak' ? 'Speak about the prompt below:' : 'Your Task:'}
             </h3>
             {question.type !== 'read_then_speak' && (
-              <p className="text-gray-700 text-lg">{question.prompt}</p>
+              <p className="text-gray-700 text-sm sm:text-base lg:text-lg">{question.prompt}</p>
             )}
           </div>
 
@@ -573,14 +615,14 @@ export default function PracticeRunner({
           )}
 
           {question.type === 'speak_about_photo' && question.image_url && (
-            <div className="mb-6">
-              <div className="bg-gray-100 p-4 rounded-lg">
+            <div className="mb-3 sm:mb-4 flex-shrink">
+              <div className="bg-gray-100 p-2 rounded-lg">
                 <Image
                   src={question.image_url}
                   alt="Describe this image"
                   width={400}
                   height={400}
-                  className="w-full max-h-[400px] object-contain rounded-lg"
+                  className="w-full h-auto max-h-[200px] sm:max-h-[300px] md:max-h-[350px] object-contain rounded-lg"
                 />
               </div>
             </div>
@@ -592,10 +634,10 @@ export default function PracticeRunner({
             </div>
           )}
 
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-4 mt-auto">
             <button
               onClick={handleSkipPrep}
-              className="px-8 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium flex items-center gap-2"
+              className="px-6 sm:px-8 py-2 sm:py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium flex items-center gap-2 text-sm sm:text-base"
             >
               {question.type === 'speak_about_photo' ? (
                 <>
@@ -625,40 +667,40 @@ export default function PracticeRunner({
     const timeRemaining = question.max_seconds - recordingTime;
 
     return (
-      <div className="h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden">
-        <div className="max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-100 mb-4">
-              <div className="w-8 h-8 rounded-full bg-red-500 animate-pulse" />
+      <div className="h-screen bg-gray-50 p-2 sm:p-4 md:p-6 flex flex-col overflow-hidden">
+        <div className="max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 flex flex-col overflow-y-auto max-h-full">
+          <div className="text-center mb-3 sm:mb-4">
+            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-red-100 mb-2">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-red-500 animate-pulse" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
               Recording...
             </h2>
-            <div className="text-4xl font-mono font-bold text-red-600">
+            <div className="text-2xl sm:text-3xl font-mono font-bold text-red-600">
               {formatTime(recordingTime)}
             </div>
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               {timeRemaining > 0 ? `${timeRemaining}s remaining` : 'Maximum time reached'}
             </p>
           </div>
 
-          <div className="mb-8 bg-gray-50 p-4 rounded-lg">
+          <div className="mb-3 bg-gray-50 p-2 sm:p-3 rounded-lg">
             {question.type === 'read_then_speak' ? (
               <>
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">Prompt:</h4>
-                <p className="text-gray-800 text-lg">{question.prompt}</p>
+                <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-1">Prompt:</h4>
+                <p className="text-gray-800 text-sm sm:text-base">{question.prompt}</p>
               </>
             ) : (
-              <p className="text-gray-700">{question.prompt}</p>
+              <p className="text-gray-700 text-xs sm:text-sm">{question.prompt}</p>
             )}
             {question.type === 'listen_then_speak' && (
               <button
                 onClick={handlePlayAudio}
                 disabled={isPlaying}
-                className="mt-3 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50 transition-colors text-sm flex items-center gap-2"
+                className="mt-2 px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50 transition-colors text-xs sm:text-sm flex items-center gap-2"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 {isPlaying ? 'Playing...' : 'Replay Audio'}
@@ -667,40 +709,40 @@ export default function PracticeRunner({
           </div>
 
           {question.type === 'speak_about_photo' && question.image_url && (
-            <div className="mb-6">
-              <div className="bg-gray-100 p-3 rounded-lg">
+            <div className="mb-3 flex-shrink">
+              <div className="bg-gray-100 p-2 rounded-lg">
                 <Image
                   src={question.image_url}
                   alt="Describe this image"
                   width={320}
                   height={320}
-                  className="w-full max-h-80 object-contain rounded"
+                  className="w-full max-h-[150px] sm:max-h-[200px] md:max-h-[250px] object-contain rounded"
                 />
               </div>
             </div>
           )}
 
-          <div className="space-y-3">
-            <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div 
+          <div className="space-y-2 mb-3">
+            <div className="bg-gray-100 rounded-full h-1.5 sm:h-2 overflow-hidden">
+              <div
                 className="bg-amber-500 h-full transition-all duration-1000"
                 style={{ width: `${(recordingTime / question.max_seconds) * 100}%` }}
               />
             </div>
-            
-            <div className="flex justify-between text-sm text-gray-600">
+
+            <div className="flex justify-between text-xs sm:text-sm text-gray-600">
               <span>Min: {question.min_seconds}s</span>
               <span>Max: {question.max_seconds}s</span>
             </div>
           </div>
 
-          <div className="flex justify-center mt-8">
+          <div className="flex justify-center mt-auto">
             <button
               onClick={handleFinishRecording}
               disabled={!canFinish || !isRecording}
-              className={`px-8 py-3 rounded-lg font-semibold transition-all ${
-                canFinish 
-                  ? 'bg-green-600 text-white hover:bg-green-700' 
+              className={`px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base ${
+                canFinish
+                  ? 'bg-green-600 text-white hover:bg-green-700'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
@@ -709,13 +751,13 @@ export default function PracticeRunner({
           </div>
 
           {canFinish && (
-            <div className="mt-4 text-center text-sm text-gray-500">
-              <p>Press <kbd className="px-2 py-1 bg-gray-100 rounded">Space</kbd> to finish</p>
+            <div className="mt-2 text-center text-xs sm:text-sm text-gray-500">
+              <p>Press <kbd className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-100 rounded text-xs">Space</kbd> to finish</p>
             </div>
           )}
 
           {recordError && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm">
               {recordError}
             </div>
           )}
@@ -727,8 +769,8 @@ export default function PracticeRunner({
   // Render processing phase
   if (phase === 'processing') {
     return (
-      <div className="h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden">
-        <div className="max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-lg p-8">
+      <div className="h-screen bg-gray-50 p-2 sm:p-4 md:p-6 flex flex-col overflow-hidden">
+        <div className="max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 flex flex-col overflow-y-auto max-h-full">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-indigo-100 mb-4">
               <svg className="animate-spin h-10 w-10 text-amber-500" fill="none" viewBox="0 0 24 24">
@@ -751,8 +793,8 @@ export default function PracticeRunner({
   // Render complete phase
   if (phase === 'complete') {
     return (
-      <div className="h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden">
-        <div className="max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-lg p-8">
+      <div className="h-screen bg-gray-50 p-2 sm:p-4 md:p-6 flex flex-col overflow-hidden">
+        <div className="max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 flex flex-col overflow-y-auto max-h-full">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-4">
               <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

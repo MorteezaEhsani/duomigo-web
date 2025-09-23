@@ -6,39 +6,26 @@ import { supabase } from '@/lib/supabase/client';
 import { DashboardSkeleton } from '@/components/LoadingSkeleton';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import WeeklyStreak from '@/components/WeeklyStreak';
+import StreakPanel from '@/components/Progress/StreakPanel';
 import PracticeCard from '@/components/PracticeCard';
-
-interface StreakData {
-  current_streak: number;
-  best_streak: number;
-}
 
 interface DashboardClientProps {
   userId: string;
-  initialStreakData?: StreakData | null;
 }
 
-export default function DashboardClient({ userId, initialStreakData }: DashboardClientProps) {
+export default function DashboardClient({ userId }: DashboardClientProps) {
   const { user } = useUser();
   const router = useRouter();
-  const [streakData, setStreakData] = useState<StreakData | null>(initialStreakData || null);
-  const [loading, setLoading] = useState(!initialStreakData);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user && userId) {
-      initializeUser();
-    }
-  }, [user, userId, initializeUser]);
 
   const initializeUser = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // First, ensure the user exists in Supabase
-      const { data: mappedUserId, error: mappingError } = await supabase.rpc(
+      // Ensure the user exists in Supabase
+      const { error: mappingError } = await supabase.rpc(
         'get_or_create_user_by_clerk_id',
         {
           p_clerk_user_id: userId,
@@ -51,66 +38,20 @@ export default function DashboardClient({ userId, initialStreakData }: Dashboard
         console.error('Error mapping user:', mappingError);
         throw new Error('Failed to initialize user profile');
       }
-
-
-      // Fetch streak data and check if it needs to be reset
-      const { data, error: streakError } = await supabase
-        .from('streaks')
-        .select('current_streak, best_streak, last_activity_date')
-        .eq('user_id', mappedUserId)
-        .single();
-
-      if (streakError) {
-        if (streakError.code === 'PGRST116') {
-          // No streak data yet, show zeros
-          setStreakData({ current_streak: 0, best_streak: 0 });
-        } else {
-          throw streakError;
-        }
-      } else {
-        // Check if streak should be reset (last activity was more than 1 day ago)
-        let currentStreak = data.current_streak;
-        if (data.last_activity_date) {
-          const lastActivity = new Date(data.last_activity_date);
-          lastActivity.setHours(0, 0, 0, 0); // Reset time to start of day
-
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-
-          // Calculate days difference
-          const daysDiff = Math.floor((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
-
-          // If last activity was more than 1 day ago (not today or yesterday), reset streak
-          if (daysDiff > 1) {
-            console.log('Streak broken - last activity was', data.last_activity_date, '- days diff:', daysDiff);
-            currentStreak = 0;
-
-            // Update the database to reset the streak
-            await supabase
-              .from('streaks')
-              .update({ current_streak: 0 })
-              .eq('user_id', mappedUserId);
-          } else {
-            console.log('Streak maintained - last activity was', data.last_activity_date, '- days diff:', daysDiff);
-          }
-        }
-        
-        setStreakData({
-          current_streak: currentStreak,
-          best_streak: data.best_streak
-        });
-      }
     } catch (err) {
       console.error('Error initializing user:', err);
       setError('Failed to load dashboard data');
-      toast.error('Failed to load your progress. Please refresh the page.');
+      toast.error('Failed to initialize user. Please refresh the page.');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user && userId) {
+      initializeUser();
+    }
+  }, [user, userId]);
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -191,48 +132,32 @@ export default function DashboardClient({ userId, initialStreakData }: Dashboard
     }
   ];
 
-  const currentStreak = streakData?.current_streak ?? 0;
-  
-  // Calculate current day of week (0 = Sunday, 6 = Saturday)
-  const today = new Date();
-  const currentDayIndex = today.getDay();
-  
-  // Calculate weekly progress (assuming goal of 7 days practice)
-  // This could be fetched from database for actual weekly practice data
-  const weeklyProgress = Math.min(currentStreak / 7, 1);
-
   return (
-    <div className="h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden">
-      <div className="max-w-5xl mx-auto w-full flex flex-col h-full">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Your Progress</h1>
-        
-        {/* Weekly Streak Component */}
-        <WeeklyStreak
-          weekStart="sun"
-          currentDayIndex={currentDayIndex}
-          progress={weeklyProgress}
-          streakDays={currentStreak}
-          goalLabel="Complete 2 practices daily"
-          className="mb-6"
-        />
+    <div className="h-screen bg-gray-50 p-3 sm:p-4 md:p-6 flex flex-col overflow-hidden">
+      <div className="max-w-5xl mx-auto w-full h-full flex flex-col">
+        {/* Strava-style Streak Panel */}
+        <div className="flex-shrink-0 mb-4">
+          <StreakPanel />
+        </div>
 
         <div className="flex-1 flex flex-col min-h-0">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Practice Modes</h2>
-          <div className="grid grid-cols-2 gap-4 flex-1">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3 flex-shrink-0">Practice Modes</h2>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:h-full">
             {practiceTypes.map((practice) => (
-              <PracticeCard
-                key={practice.type}
-                title={practice.title}
-                description={practice.description}
-                icon={practice.fallbackIcon}
-                iconPath={practice.iconPath}
-                bgColor={practice.bgColor}
-                iconColor={practice.iconColor}
-                onClick={() => {
-                  const path = practice.isCustom ? '/app/custom' : `/app/practice/${practice.type}`;
-                  router.push(path);
-                }}
-              />
+              <div key={practice.type} className="aspect-square sm:aspect-auto sm:h-full">
+                <PracticeCard
+                  title={practice.title}
+                  description={practice.description}
+                  icon={practice.fallbackIcon}
+                  iconPath={practice.iconPath}
+                  bgColor={practice.bgColor}
+                  iconColor={practice.iconColor}
+                  onClick={() => {
+                    const path = practice.isCustom ? '/app/custom' : `/app/practice/${practice.type}`;
+                    router.push(path);
+                  }}
+                />
+              </div>
             ))}
           </div>
         </div>

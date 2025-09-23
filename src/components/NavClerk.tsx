@@ -15,32 +15,6 @@ export default function NavClerk() {
               Duomigo
             </Link>
             
-            <div className="hidden sm:block ml-10">
-              <div className="flex items-center space-x-4">
-                <Link
-                  href="/"
-                  className="text-zinc-700 hover:text-zinc-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  Home
-                </Link>
-                {isSignedIn && (
-                  <>
-                    <Link
-                      href="/app"
-                      className="text-zinc-700 hover:text-zinc-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                    >
-                      Dashboard
-                    </Link>
-                    <Link
-                      href="/app/profile"
-                      className="text-zinc-700 hover:text-zinc-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                    >
-                      Profile
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -64,7 +38,7 @@ export default function NavClerk() {
                 </SignInButton>
                 <Link
                   href="/sign-up"
-                  className="bg-indigo-600 text-white hover:bg-indigo-500 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="bg-amber-500 text-white hover:bg-amber-600 px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   Get Started
                 </Link>

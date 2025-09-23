@@ -43,22 +43,12 @@ export async function POST(request: NextRequest) {
     const minSeconds = Math.ceil(Math.max(30, duration / 3));
     const maxSeconds = duration;
 
-    // Create a practice session first
-    const { data: session, error: sessionError } = await supabase
-      .from('practice_sessions')
-      .insert({
-        user_id: supabaseUserId,
-        started_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (sessionError || !session) {
-      console.error('Session error:', sessionError);
-      return NextResponse.json({ 
-        error: 'Failed to create practice session' 
-      }, { status: 500 });
-    }
+    // Create a temporary session ID (actual session will be created after completion)
+    const session = {
+      id: `temp_custom_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      user_id: supabaseUserId,
+      started_at: new Date().toISOString()
+    };
 
     // Create the custom question using service role to bypass RLS
     const { data: question, error: questionError } = await supabase

@@ -58,19 +58,29 @@ export default async function PracticeRunnerPage({ params, searchParams }: PageP
 
   // Check if this is a custom prompt with existing session and question
   if (resolvedParams.type === 'custom_prompt' && resolvedSearchParams.session && resolvedSearchParams.question) {
-    // Fetch the existing session
-    const { data: existingSession, error: sessionError } = await supabase
-      .from('practice_sessions')
-      .select('*')
-      .eq('id', resolvedSearchParams.session)
-      .eq('user_id', supabaseUserId)
-      .single();
+    // Check if this is a temporary session (not yet in database)
+    if (resolvedSearchParams.session.startsWith('temp_')) {
+      // Create a temporary session object
+      session = {
+        id: resolvedSearchParams.session,
+        user_id: supabaseUserId,
+        started_at: new Date().toISOString()
+      };
+    } else {
+      // Fetch the existing session from database
+      const { data: existingSession, error: sessionError } = await supabase
+        .from('practice_sessions')
+        .select('*')
+        .eq('id', resolvedSearchParams.session)
+        .eq('user_id', supabaseUserId)
+        .single();
 
-    if (sessionError || !existingSession) {
-      console.error('Error fetching session:', sessionError);
-      redirect('/app');
+      if (sessionError || !existingSession) {
+        console.error('Error fetching session:', sessionError);
+        redirect('/app');
+      }
+      session = existingSession;
     }
-    session = existingSession;
 
     // Fetch the specific question
     const { data: specificQuestion, error: questionError } = await supabase
@@ -87,47 +97,70 @@ export default async function PracticeRunnerPage({ params, searchParams }: PageP
 
   } else {
     // Regular flow for non-custom prompts
-    // Create a practice session
-    const { data: newSession, error: sessionError } = await supabase
-      .from('practice_sessions')
-      .insert({
-        user_id: supabaseUserId,
-        started_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    // We'll pass a temporary session ID that will be created after completion
+    session = {
+      id: `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      user_id: supabaseUserId,
+      started_at: new Date().toISOString()
+    };
 
-    if (sessionError || !newSession) {
-      console.error('Error creating session:', sessionError);
-      redirect('/app');
-    }
-    session = newSession;
+    // First, get the user's recent attempts to avoid showing the same questions
+    // Get the last 10 attempts for this question type by this user
+    const recentDays = 7; // Look at questions from the last 7 days
+    const recentLimit = 10; // Track the last 10 questions shown
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - recentDays);
 
-    // Fetch a random question of the given type
-    const { count } = await supabase
-      .from('questions')
-      .select('*', { count: 'exact', head: true })
-      .eq('type', resolvedParams.type);
+    const { data: recentAttempts } = await supabase
+      .from('attempts')
+      .select('question_id')
+      .eq('user_id', supabaseUserId)
+      .eq('type_id', resolvedParams.type)
+      .gte('attempted_at', cutoffDate.toISOString())
+      .order('attempted_at', { ascending: false })
+      .limit(recentLimit);
 
-    if (!count || count === 0) {
-      redirect('/app');
-    }
+    const recentQuestionIds = recentAttempts?.map(a => a.question_id) || [];
 
-    // Get random offset
-    const randomOffset = Math.floor(Math.random() * count);
-
-    const { data: randomQuestion, error: questionError } = await supabase
+    // Fetch all questions of the given type
+    const { data: allQuestions, error: allQuestionsError } = await supabase
       .from('questions')
       .select('*')
-      .eq('type', resolvedParams.type)
-      .range(randomOffset, randomOffset)
-      .single();
+      .eq('type', resolvedParams.type);
 
-    if (questionError || !randomQuestion) {
-      console.error('Error fetching question:', questionError);
+    if (allQuestionsError || !allQuestions || allQuestions.length === 0) {
+      console.error('Error fetching questions:', allQuestionsError);
       redirect('/app');
     }
-    question = randomQuestion;
+
+    // Filter out recently shown questions if possible
+    let availableQuestions = allQuestions.filter(q => !recentQuestionIds.includes(q.id));
+
+    // If all questions have been shown recently, use all questions but prefer the least recently shown
+    if (availableQuestions.length === 0) {
+      console.log('All questions shown recently, using full pool');
+      availableQuestions = allQuestions;
+
+      // If we have more questions than recent attempts, we can still filter
+      if (allQuestions.length > recentQuestionIds.length && recentQuestionIds.length > 0) {
+        // Sort questions to prioritize those not in recent list
+        availableQuestions = [
+          ...allQuestions.filter(q => !recentQuestionIds.includes(q.id)),
+          ...allQuestions.filter(q => recentQuestionIds.includes(q.id))
+        ];
+      }
+    }
+
+    // Select a random question from available pool
+    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+    question = availableQuestions[randomIndex];
+
+    if (!question) {
+      console.error('No question selected');
+      redirect('/app');
+    }
+
+    console.log(`Selected question: ${question.id} from pool of ${availableQuestions.length} questions (${allQuestions.length} total, ${recentQuestionIds.length} recent)`);
   }
 
   return (

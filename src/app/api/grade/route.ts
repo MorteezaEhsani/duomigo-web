@@ -483,6 +483,26 @@ export async function POST(request: NextRequest) {
         // Continue anyway - we have the feedback to return
       }
 
+      // Update the practice session's end time now that grading is complete
+      const { data: attemptWithSession } = await supabase
+        .from('attempts')
+        .select('session_id')
+        .eq('id', attemptId)
+        .single();
+
+      if (attemptWithSession?.session_id) {
+        // Update the practice session to mark it as ended
+        const { error: updateSessionError } = await supabase
+          .from('practice_sessions')
+          .update({ ended_at: new Date().toISOString() })
+          .eq('id', attemptWithSession.session_id)
+          .is('ended_at', null); // Only update if not already ended
+
+        if (updateSessionError) {
+          console.error('Error updating practice session end time:', updateSessionError);
+        }
+      }
+
       // 6. Respond to client with all rubric data
       return NextResponse.json({
         ok: true,

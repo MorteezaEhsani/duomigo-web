@@ -9,7 +9,6 @@ export default async function AppPage() {
     redirect('/sign-in');
   }
 
-  // For now, we'll just pass the Clerk user ID
-  // The dashboard will handle Supabase data fetching
-  return <DashboardClient userId={userId} initialStreakData={null} />;
+  // Pass the Clerk user ID to the dashboard
+  return <DashboardClient userId={userId} />;
 }

@@ -103,6 +103,16 @@ const nextConfig: NextConfig = {
     // Don't fail build on ESLint errors except in Vercel production
     ignoreDuringBuilds: !isVercelProduction,
   },
+  // Configure image domains for Next.js Image component
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'ayrxmujruxhrkzuwmflx.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
