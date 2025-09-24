@@ -78,24 +78,39 @@ export default function PracticeRunner({
     setProcessing(true);
 
     try {
+      console.log('Recording complete, blob size:', blob.size, 'type:', blob.type);
+
+      if (!blob || blob.size === 0) {
+        throw new Error('Recording is empty - please try again');
+      }
+
       // Generate attempt ID
       const attemptId = crypto.randomUUID();
 
+      // Determine the file extension based on blob type
+      const fileExtension = blob.type.includes('mp4') ? 'mp4' :
+                           blob.type.includes('aac') ? 'aac' :
+                           blob.type.includes('wav') ? 'wav' : 'webm';
+
       // Upload audio to storage
       const formData = new FormData();
-      formData.append('audio', blob, 'recording.webm');
+      formData.append('audio', blob, `recording.${fileExtension}`);
       formData.append('attemptId', attemptId);
 
+      console.log('Uploading audio to /api/upload-audio...');
       const uploadResponse = await fetch('/api/upload-audio', {
         method: 'POST',
         body: formData,
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload audio');
+        const errorText = await uploadResponse.text();
+        console.error('Upload failed:', errorText);
+        throw new Error(`Failed to upload audio: ${uploadResponse.status}`);
       }
 
       const { audioUrl } = await uploadResponse.json();
+      console.log('Audio uploaded successfully:', audioUrl);
 
       // Create attempt record
       const isTemporarySession = sessionId.startsWith('temp_');
@@ -233,7 +248,20 @@ export default function PracticeRunner({
 
     } catch (err) {
       console.error('Error processing recording:', err);
-      toast.error('Failed to submit recording');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+
+      if (errorMessage.includes('empty')) {
+        toast.error('Recording was empty. Please try recording again.');
+      } else if (errorMessage.includes('upload')) {
+        toast.error('Failed to upload audio. Please check your connection and try again.');
+      } else if (errorMessage.includes('Unauthorized')) {
+        toast.error('Session expired. Please sign in again.');
+        router.push('/sign-in');
+        return;
+      } else {
+        toast.error(`Failed to submit: ${errorMessage}`);
+      }
+
       setProcessing(false);
       setPhase('record');
     }
@@ -373,20 +401,22 @@ export default function PracticeRunner({
 
       try {
         await audioRef.current.play();
+        // Audio played successfully, mark as loaded and start timer
+        if (!audioLoaded) {
+          console.log('Audio played successfully, starting prep timer with', question.prep_seconds || 20, 'seconds');
+          setAudioLoaded(true);
+          setPrepStarted(true);
+        }
       } catch (playError) {
         console.log('Auto-play failed, user interaction required:', playError);
         // On mobile, we often need user interaction - show a user-friendly message
         if (playError instanceof Error && playError.name === 'NotAllowedError') {
-          toast.info('Tap the play button to hear the audio');
+          toast.info('Click the play button to hear the audio prompt');
+          // Don't start timer until audio is played
+          setIsPlaying(false);
+          return; // Don't throw error, just show message
         }
         throw playError;
-      }
-
-      // Mark audio as loaded and start prep timer
-      if (!audioLoaded) {
-        console.log('Audio loaded, starting prep timer with', question.prep_seconds || 20, 'seconds');
-        setAudioLoaded(true);
-        setPrepStarted(true);
       }
     } catch (err) {
       console.error('Error playing audio:', err);
@@ -538,25 +568,14 @@ export default function PracticeRunner({
   }, [sessionId, question.id, supabaseUserId, question.type]);
   
   // Auto-load audio for listen_then_speak questions - separate effect to prevent double trigger
-  // Disable auto-play on mobile browsers to avoid issues
   useEffect(() => {
     if (question.type === 'listen_then_speak' && phase === 'prep' && !audioLoaded && !isPlaying) {
-      // Check if we're on a mobile device
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      // Always try to auto-play first
+      const timer = setTimeout(() => {
+        handlePlayAudio();
+      }, 500);
 
-      if (!isMobile) {
-        // Only auto-play on desktop
-        const timer = setTimeout(() => {
-          handlePlayAudio();
-        }, 500);
-
-        return () => clearTimeout(timer);
-      } else {
-        // On mobile, just mark as "ready to play" and start timer
-        console.log('Mobile device detected, requiring user interaction for audio');
-        setAudioLoaded(true);
-        setPrepStarted(true);
-      }
+      return () => clearTimeout(timer);
     }
   }, [question.type, phase, audioLoaded, isPlaying, handlePlayAudio]);
 
@@ -612,10 +631,12 @@ export default function PracticeRunner({
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">
               Get Ready
             </h2>
-            {question.type === 'listen_then_speak' && !audioLoaded && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? (
+            {question.type === 'listen_then_speak' && !audioLoaded ? (
               <div>
-                <div className="text-lg text-gray-600 mb-2">Loading audio...</div>
-                <p className="text-sm text-gray-500">Timer will start after audio loads</p>
+                <div className="text-lg text-gray-600 mb-2">
+                  {isPlaying ? 'Loading audio...' : 'Please play the audio'}
+                </div>
+                <p className="text-sm text-gray-500">Timer will start after audio plays</p>
               </div>
             ) : (
               <>
@@ -651,9 +672,9 @@ export default function PracticeRunner({
                 </svg>
                 {isPlaying ? 'Playing...' : 'Play Audio'}
               </button>
-              {/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) && !audioLoaded && (
+              {!audioLoaded && (
                 <p className="text-xs sm:text-sm text-gray-500 text-center">
-                  📱 Tap the play button above to hear the audio prompt
+                  {isPlaying ? '🔊 Loading audio...' : '👆 Click to play the audio prompt'}
                 </p>
               )}
             </div>
