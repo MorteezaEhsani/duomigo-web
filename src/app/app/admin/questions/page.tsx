@@ -40,10 +40,16 @@ export default async function AdminQuestionsPage() {
   }
 
   // Fetch all questions
-  const { data: questions } = await supabase
+  const { data: questionsRaw } = await supabase
     .from('questions')
     .select('*')
     .order('created_at', { ascending: false });
+
+  // Type cast to match AdminQuestionsClient interface
+  const questions = questionsRaw?.map(q => ({
+    ...q,
+    metadata: q.metadata as Record<string, unknown> | null
+  })) || [];
 
   // Define the only allowed question types for admin
   const questionTypes = [
@@ -53,8 +59,8 @@ export default async function AdminQuestionsPage() {
   ];
 
   return (
-    <AdminQuestionsClient 
-      initialQuestions={questions || []}
+    <AdminQuestionsClient
+      initialQuestions={questions}
       questionTypes={questionTypes}
       supabaseUserId={supabaseUserId}
     />

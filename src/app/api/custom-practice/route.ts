@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { GetOrCreateUserParams } from '@/types/api';
+import type { TablesInsert } from '@/types/database.types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,9 +18,7 @@ export async function POST(request: NextRequest) {
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',
       {
-        p_clerk_user_id: userId,
-        p_email: null,
-        p_display_name: null
+        p_clerk_user_id: userId
       } satisfies GetOrCreateUserParams
     );
 
@@ -68,7 +67,7 @@ export async function POST(request: NextRequest) {
           created_by: supabaseUserId,
           duration_setting: duration
         }
-      })
+      } as TablesInsert<'questions'>)
       .select()
       .single();
 

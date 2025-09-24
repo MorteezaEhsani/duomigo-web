@@ -50,12 +50,12 @@ interface Question {
   image_url?: string | null;
   target_language: string;
   source_language: string;
-  difficulty: number;
+  difficulty: number | null;
   prep_seconds: number;
   min_seconds: number;
   max_seconds: number;
-  metadata?: Record<string, unknown>;
-  created_at: string;
+  metadata?: Record<string, unknown> | null;
+  created_at: string | null;
 }
 
 interface QuestionType {
@@ -323,7 +323,7 @@ export default function AdminQuestionsClient({
                             <svg
                               key={i}
                               className={`w-4 h-4 ${
-                                i < question.difficulty ? 'text-yellow-400' : 'text-zinc-300'
+                                i < (question.difficulty || 0) ? 'text-yellow-400' : 'text-zinc-300'
                               }`}
                               fill="currentColor"
                               viewBox="0 0 20 20"

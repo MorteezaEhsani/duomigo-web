@@ -13,11 +13,12 @@ interface Question {
   image_url?: string | null;
   target_language: string;
   source_language: string;
-  difficulty: number;
+  difficulty: number | null;
   prep_seconds: number;
   min_seconds: number;
   max_seconds: number;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
+  created_at: string | null;
 }
 
 interface QuestionType {

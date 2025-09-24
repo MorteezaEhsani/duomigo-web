@@ -124,7 +124,7 @@ export async function POST(
 
     // 3) Build analysis from stored data
     const transcript: string = attempt.transcript || '';
-    const duration: number = attempt.duration || 30;
+    const duration: number = 30; // Default duration since duration field doesn't exist in schema
 
     const metrics = calculateMetrics(transcript, duration);
 
@@ -144,10 +144,11 @@ export async function POST(
     let actionPlan: string[] = [];
     let grammarIssues: AnalyzeResponse['grammarIssues'] = [];
 
-    if (attempt.feedback_json) {
+    if (attempt.feedback_json && typeof attempt.feedback_json === 'object') {
+      const feedbackObj = attempt.feedback_json as Record<string, unknown>;
       actionPlan =
-        attempt.feedback_json.actionable_tips ||
-        attempt.feedback_json.improvements || [
+        (feedbackObj?.actionable_tips as string[]) ||
+        (feedbackObj?.improvements as string[]) || [
           'Practice speaking more fluently',
           'Work on pronunciation clarity',
           'Expand your vocabulary range',

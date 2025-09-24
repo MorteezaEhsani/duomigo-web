@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { supabase } from '@/lib/supabase/client';
@@ -40,28 +40,7 @@ export default function PracticeClient({ initialUserId: _initialUserId, supabase
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    if (!isSignedIn) {
-      toast.error('Please sign in to practice');
-      router.push('/sign-in');
-      return;
-    }
-
-    // Check if practice type is valid
-    if (!VALID_PRACTICE_TYPES.includes(type)) {
-      setError(`Unknown practice type: ${type}`);
-      setLoading(false);
-      return;
-    }
-
-    if (supabaseUserId) {
-      startPracticeSession();
-    }
-  }, [type, isLoaded, isSignedIn, supabaseUserId, router, startPracticeSession]);
-
-  const startPracticeSession = async () => {
+  const startPracticeSession = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -123,7 +102,28 @@ export default function PracticeClient({ initialUserId: _initialUserId, supabase
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabaseUserId, type]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    if (!isSignedIn) {
+      toast.error('Please sign in to practice');
+      router.push('/sign-in');
+      return;
+    }
+
+    // Check if practice type is valid
+    if (!VALID_PRACTICE_TYPES.includes(type)) {
+      setError(`Unknown practice type: ${type}`);
+      setLoading(false);
+      return;
+    }
+
+    if (supabaseUserId) {
+      startPracticeSession();
+    }
+  }, [type, isLoaded, isSignedIn, supabaseUserId, router, startPracticeSession]);
 
   const handleSubmit = async () => {
     if (!sessionId || !question || !supabaseUserId) return;

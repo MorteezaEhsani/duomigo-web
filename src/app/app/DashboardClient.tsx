@@ -29,7 +29,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
         'get_or_create_user_by_clerk_id',
         {
           p_clerk_user_id: userId,
-          p_email: user?.emailAddresses[0]?.emailAddress || null,
+          p_email: user?.emailAddresses[0]?.emailAddress || undefined,
           p_display_name: user?.firstName || user?.username || 'User'
         }
       );

@@ -40,7 +40,7 @@ export default function AdminQuestionsClient() {
 
     try {
       // Prepare the data for insertion
-      const questionData: any = {
+      const questionData = {
         type: formData.type,
         prompt: formData.prompt.trim(),
         target_language: formData.targetLanguage,
@@ -49,14 +49,10 @@ export default function AdminQuestionsClient() {
         prep_seconds: formData.prepSeconds,
         min_seconds: formData.minSeconds,
         max_seconds: formData.maxSeconds,
+        image_url: formData.type === 'speak_about_photo' && formData.imageUrl
+          ? formData.imageUrl.trim()
+          : null
       };
-
-      // Only add image_url for speak_about_photo type
-      if (formData.type === 'speak_about_photo' && formData.imageUrl) {
-        questionData.image_url = formData.imageUrl.trim();
-      } else {
-        questionData.image_url = null;
-      }
 
       const { data, error } = await supabase
         .from('questions')

@@ -6,9 +6,10 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { PUBLIC_ENV, SERVER_ENV } from '../env.server';
+import type { Database } from '@/types/database.types';
 
 // Create a single admin client instance
-let adminClient: ReturnType<typeof createClient> | null = null;
+let adminClient: ReturnType<typeof createClient<Database>> | null = null;
 
 /**
  * Get the admin Supabase client with service role privileges
@@ -31,7 +32,7 @@ export function getAdminSupabaseClient() {
   }
 
   // Create and cache the admin client
-  adminClient = createClient(
+  adminClient = createClient<Database>(
     PUBLIC_ENV.SUPABASE_URL,
     SERVER_ENV.SUPABASE_SERVICE_ROLE_KEY,
     {

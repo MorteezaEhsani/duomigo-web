@@ -215,10 +215,14 @@ export async function POST(request: NextRequest) {
 
     // Check if already graded
     if (attempt.graded_at && attempt.feedback_json) {
+      const feedbackBase = typeof attempt.feedback_json === 'object' && attempt.feedback_json !== null
+        ? attempt.feedback_json as Record<string, unknown>
+        : {};
+
       return NextResponse.json({
         ok: true,
         feedback: {
-          ...attempt.feedback_json,
+          ...feedbackBase,
           overall: attempt.overall_score || attempt.score || 0,
           fluency: attempt.fluency_score || 0,
           pronunciation: attempt.pronunciation_score || 0,

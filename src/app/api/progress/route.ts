@@ -181,7 +181,7 @@ export async function GET() {
       'get_or_create_user_by_clerk_id',
       {
         p_clerk_user_id: user.id,
-        p_email: user.emailAddresses[0]?.emailAddress || null,
+        p_email: user.emailAddresses[0]?.emailAddress || undefined,
         p_display_name: user.firstName || user.username || 'User'
       }
     );
@@ -229,6 +229,7 @@ export async function GET() {
     // Count completions per day
     const dailyCounts = new Map<string, number>();
     sessions?.forEach((session) => {
+      if (!session.started_at) return;
       const date = new Date(session.started_at);
       const dateKey = formatDate(date);
       dailyCounts.set(dateKey, (dailyCounts.get(dateKey) || 0) + 1);

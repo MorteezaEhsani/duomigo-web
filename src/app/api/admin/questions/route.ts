@@ -2,28 +2,34 @@ import { auth } from '@clerk/nextjs/server';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import { NextResponse, NextRequest } from 'next/server';
 import { z } from 'zod';
-import type { GetOrCreateUserParams, QuestionCreateRequest, QuestionUpdateRequest } from '@/types/api';
-import type { Question, Profile } from '@/types/database';
+import { GetOrCreateUserParams } from '@/types/api';
+import type { Tables, TablesInsert, TablesUpdate } from '@/types/database.types';
 
-// Validation schemas
+// Validation schemas - Updated to match actual database schema
 const QuestionCreateSchema = z.object({
   type: z.string(),
-  level: z.string(),
   prompt: z.string(),
-  target_lang: z.string(),
-  media_url: z.string().optional(),
-  explanation: z.string().optional(),
-  is_published: z.boolean().optional().default(true)
+  source_language: z.string(),
+  target_language: z.string(),
+  prep_seconds: z.number().optional().default(20),
+  min_seconds: z.number().optional().default(30),
+  max_seconds: z.number().optional().default(90),
+  difficulty: z.number().optional().default(2),
+  image_url: z.string().nullable().optional(),
+  metadata: z.any().optional()
 });
 
 const QuestionUpdateSchema = z.object({
   type: z.string().optional(),
-  level: z.string().optional(),
   prompt: z.string().optional(),
-  target_lang: z.string().optional(),
-  media_url: z.string().nullable().optional(),
-  explanation: z.string().nullable().optional(),
-  is_published: z.boolean().optional()
+  source_language: z.string().optional(),
+  target_language: z.string().optional(),
+  prep_seconds: z.number().optional(),
+  min_seconds: z.number().optional(),
+  max_seconds: z.number().optional(),
+  difficulty: z.number().optional(),
+  image_url: z.string().nullable().optional(),
+  metadata: z.any().optional()
 });
 
 export async function DELETE(request: NextRequest) {
@@ -37,14 +43,11 @@ export async function DELETE(request: NextRequest) {
     const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID and check admin status
-    const rpcParams: GetOrCreateUserParams = {
-      p_clerk_user_id: userId,
-      p_email: undefined,
-      p_display_name: undefined
-    };
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',
-      rpcParams as unknown as undefined
+      {
+        p_clerk_user_id: userId
+      } satisfies GetOrCreateUserParams
     );
 
     if (userError) {
@@ -107,14 +110,11 @@ export async function POST(request: NextRequest) {
     const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID and check admin status
-    const rpcParams: GetOrCreateUserParams = {
-      p_clerk_user_id: userId,
-      p_email: undefined,
-      p_display_name: undefined
-    };
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',
-      rpcParams as unknown as undefined
+      {
+        p_clerk_user_id: userId
+      } satisfies GetOrCreateUserParams
     );
 
     if (userError) {
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json() as unknown;
-    const questionData = QuestionCreateSchema.parse(body);
+    const questionData = QuestionCreateSchema.parse(body) as TablesInsert<'questions'>;
     console.log('Creating question with body:', questionData);
 
     // Insert the question using service role
@@ -177,14 +177,11 @@ export async function PUT(request: NextRequest) {
     const supabase = getAdminSupabaseClient();
 
     // Get Supabase user ID and check admin status
-    const rpcParams: GetOrCreateUserParams = {
-      p_clerk_user_id: userId,
-      p_email: undefined,
-      p_display_name: undefined
-    };
     const { data: supabaseUserId, error: userError } = await supabase.rpc(
       'get_or_create_user_by_clerk_id',
-      rpcParams as unknown as undefined
+      {
+        p_clerk_user_id: userId
+      } satisfies GetOrCreateUserParams
     );
 
     if (userError) {
@@ -215,7 +212,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json() as unknown;
-    const updateData = QuestionUpdateSchema.parse(body);
+    const updateData = QuestionUpdateSchema.parse(body) as TablesUpdate<'questions'>;
     console.log('Updating question', questionId, 'with body:', updateData);
 
     // Update the question using service role

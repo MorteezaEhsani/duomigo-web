@@ -129,7 +129,7 @@ export default function PracticeRunner({
       });
 
       // Build the insert object
-      const attemptData: any = {
+      const attemptData = {
         id: attemptId,
         session_id: actualSessionId,
         question_id: question.id,
@@ -482,6 +482,10 @@ export default function PracticeRunner({
         if (attempts && attempts.length > 0 && attempts[0].feedback_json) {
           const attempt = attempts[0];
           console.log('Loading existing feedback for attempt:', attempt);
+          const feedbackObj = attempt.feedback_json && typeof attempt.feedback_json === 'object'
+            ? attempt.feedback_json as Record<string, unknown>
+            : {};
+
           setFeedback({
             overall: (attempt.overall_score || 0) * 20, // Convert 0-5 to 0-100
             fluency: (attempt.fluency_score || 0) * 20, // Convert 0-5 to 0-100
@@ -489,14 +493,14 @@ export default function PracticeRunner({
             grammar: (attempt.grammar_score || 0) * 20, // Convert 0-5 to 0-100
             vocabulary: (attempt.vocabulary_score || 0) * 20, // Convert 0-5 to 0-100
             coherence: (attempt.coherence_score || 0) * 20, // Convert 0-5 to 0-100
-            task: attempt.feedback_json.task,
-            strengths: attempt.feedback_json.strengths || '',
-            improvements: attempt.feedback_json.improvements || '',
-            actionable_tips: attempt.feedback_json.actionable_tips || [],
-            grammarIssues: attempt.feedback_json.grammarIssues || [],
-            transcript: attempt.transcript || attempt.feedback_json.transcript,
-            metrics: attempt.feedback_json.metrics,
-            cefr: attempt.feedback_json.cefr,
+            task: (feedbackObj.task as number) || 0,
+            strengths: (feedbackObj.strengths as string) || '',
+            improvements: (feedbackObj.improvements as string) || '',
+            actionable_tips: (feedbackObj.actionable_tips as string[]) || [],
+            grammarIssues: (feedbackObj.grammarIssues as Array<{ before: string; after: string; explanation: string }>) || [],
+            transcript: attempt.transcript || (feedbackObj.transcript as string),
+            metrics: feedbackObj.metrics as { durationSec: number; wordsPerMinute: number; fillerPerMin: number; typeTokenRatio: number; fillerCount: number; wordCount: number } | undefined,
+            cefr: feedbackObj.cefr as string,
           });
           setPhase('feedback');
         }

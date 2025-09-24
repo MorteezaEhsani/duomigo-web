@@ -1,9 +1,9 @@
-// src/lib/supabase/server.ts
 'use server';
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { PUBLIC_ENV } from '../env.server';
+import type { Database } from '@/types/database.types';
 
 /**
  * Create a Supabase client on the server.
@@ -12,7 +12,7 @@ import { PUBLIC_ENV } from '../env.server';
 export async function createServerSupabase() {
   const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient<Database>(
     PUBLIC_ENV.SUPABASE_URL!,
     PUBLIC_ENV.SUPABASE_ANON_KEY!,
     {

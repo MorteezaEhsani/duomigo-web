@@ -58,14 +58,14 @@ export default function PracticeCard({
               height={80}
               className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-200"
             />
-          ) : icon ? (
+          ) : icon && React.isValidElement(icon) ? (
             <div
               className="opacity-80 group-hover:opacity-100 transition-opacity duration-200 w-full h-full"
               style={{ color: iconColor }}
             >
-              {React.cloneElement(icon as React.ReactElement, {
+              {React.cloneElement(icon, {
                 className: "w-full h-full"
-              })}
+              } as Record<string, unknown>)}
             </div>
           ) : (
             <div
