@@ -144,12 +144,13 @@ ${grammarSection}`.trim();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+    <div className="h-viewport bg-gray-50 flex flex-col">
+      <div className="flex-1 overflow-y-auto safe-top">
+        <div className="max-w-4xl mx-auto p-2 sm:p-4 md:p-6">
+          <div className="bg-white rounded-lg sm:rounded-xl md:rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
         {/* Header (Overall + CEFR badge) */}
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-amber-50 to-orange-50">
-          <h2 className="text-3xl font-bold text-gray-900">
+        <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-amber-50 to-orange-50">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
             Overall: <span className="text-amber-600">{Math.round(feedback.overall ?? 0)}</span>
           </h2>
           <span
@@ -162,11 +163,11 @@ ${grammarSection}`.trim();
         </div>
 
         {/* Charts row: Radar (rubric) + Bar (metrics) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 border-b border-gray-200 bg-gray-50">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6 p-3 sm:p-4 md:p-6 border-b border-gray-200 bg-gray-50">
           {/* Speaking Subscores (Radar) */}
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
-            <div className="p-4 pb-0">
-              <h3 className="text-lg font-semibold text-gray-900">Speaking Subscores</h3>
+          <div className="rounded-lg sm:rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div className="p-3 sm:p-4 pb-0">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Speaking Subscores</h3>
             </div>
             <div className="h-64 w-full p-4" aria-label="Radar chart of speaking subscores">
               <ResponsiveContainer width="100%" height="100%">
@@ -181,10 +182,10 @@ ${grammarSection}`.trim();
           </div>
 
           {/* Delivery Metrics (Bar) */}
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
-            <div className="p-4 pb-0">
-              <h3 className="text-lg font-semibold text-gray-900">Delivery Metrics</h3>
-              <p className="text-sm text-gray-600 mt-1">
+          <div className="rounded-lg sm:rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div className="p-3 sm:p-4 pb-0">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Delivery Metrics</h3>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 WPM, fillers/min (lower is better), and lexical diversity (TTR).
               </p>
             </div>
@@ -207,9 +208,9 @@ ${grammarSection}`.trim();
         </div>
 
         {/* Transcript */}
-        <div className="p-6 border-b border-gray-200 bg-white">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Transcript</h3>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 bg-white">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Transcript</h3>
+          <div className="rounded-lg sm:rounded-xl border border-gray-200 bg-gray-50 p-3 sm:p-4">
             {feedback.transcript?.trim() ? (
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-800">{feedback.transcript.trim()}</p>
             ) : (
@@ -219,14 +220,14 @@ ${grammarSection}`.trim();
         </div>
 
         {/* Strengths */}
-        <div className="p-6 border-b border-gray-200 bg-white">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 bg-white">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2">
             <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Strengths
           </h3>
-          <div className="rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 p-4">
+          <div className="rounded-lg sm:rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 p-3 sm:p-4">
             <p className="text-sm text-emerald-900 leading-relaxed font-medium">
               {typeof feedback.strengths === 'string'
                 ? feedback.strengths
@@ -238,14 +239,14 @@ ${grammarSection}`.trim();
         </div>
 
         {/* Areas for Improvement */}
-        <div className="p-6 border-b border-gray-200 bg-white">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 bg-white">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2">
             <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             Areas for Improvement
           </h3>
-          <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 p-4">
+          <div className="rounded-lg sm:rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 p-3 sm:p-4">
             <p className="text-sm text-amber-900 leading-relaxed font-medium">
               {typeof feedback.improvements === 'string'
                 ? feedback.improvements
@@ -257,8 +258,8 @@ ${grammarSection}`.trim();
         </div>
 
         {/* Grammar Suggestions */}
-        <div className="p-6 border-b border-gray-200 bg-white">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 bg-white">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2">
             <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
@@ -286,8 +287,8 @@ ${grammarSection}`.trim();
         </div>
 
         {/* Action Plan */}
-        <div className="p-6 bg-white">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div className="p-3 sm:p-4 md:p-6 bg-white">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2">
             <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
@@ -310,7 +311,7 @@ ${grammarSection}`.trim();
         </div>
 
         {/* Footer actions */}
-        <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 sm:justify-center">
+        <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 sm:justify-center safe-bottom">
           <button
             onClick={() => router.push('/app')}
             className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-lg sm:rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg hover:shadow-xl text-xs sm:text-sm md:text-base"
@@ -343,8 +344,9 @@ ${grammarSection}`.trim();
             <span className="sm:hidden">Copy</span>
           </button>
         </div>
+          </div>
+        </div>
       </div>
-    </div>
     </div>
   );
 }

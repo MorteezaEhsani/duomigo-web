@@ -18,6 +18,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Duomigo - Learn Languages Naturally",
   description: "Practice speaking, listening, and conversing in your target language",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: 'cover', // Important for iPhone notch/safe areas
+  },
+  themeColor: '#f59e0b', // Amber color for status bar
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Duomigo',
+  },
 };
 
 export default function RootLayout({
