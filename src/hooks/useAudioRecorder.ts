@@ -25,22 +25,46 @@ export function useAudioRecorder({
   const startRecording = useCallback(async () => {
     try {
       setError(null);
-      
-      // Request microphone permission
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+
+      // Check for MediaRecorder support
+      if (typeof MediaRecorder === 'undefined') {
+        throw new Error('MediaRecorder not supported on this device');
+      }
+
+      // Mobile-friendly audio constraints
+      const audioConstraints = {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          sampleRate: 44100,
-        } 
-      });
+          autoGainControl: true,
+          // Remove sampleRate constraint for mobile compatibility
+          ...(typeof window !== 'undefined' && !navigator.userAgent.match(/iPhone|iPad|iPod|Android/i) && {
+            sampleRate: 44100,
+          })
+        }
+      };
 
-      // Create MediaRecorder with appropriate mime type
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
-        ? 'audio/webm' 
-        : 'audio/mp4';
-      
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      // Request microphone permission
+      const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+
+      // Determine the best mime type for the device
+      let mimeType = 'audio/webm';
+      if (!MediaRecorder.isTypeSupported('audio/webm')) {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+          mimeType = 'audio/aac';
+        } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+          mimeType = 'audio/wav';
+        } else {
+          // Fallback - let browser choose
+          mimeType = '';
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -89,7 +113,23 @@ export function useAudioRecorder({
 
     } catch (err) {
       console.error('Error starting recording:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start recording');
+      let errorMessage = 'Failed to start recording';
+
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          errorMessage = 'Microphone permission denied. Please allow microphone access and try again.';
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          errorMessage = 'No microphone found. Please connect a microphone and try again.';
+        } else if (err.name === 'NotSupportedError' || err.message.includes('not supported')) {
+          errorMessage = 'Audio recording not supported on this device/browser. Try using Chrome or Safari.';
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          errorMessage = 'Microphone is being used by another app. Please close other apps and try again.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
     }
   }, [maxDuration, onRecordingComplete]);
 

@@ -262,8 +262,13 @@ export default function PracticeRunner({
   const handlePrepComplete = useCallback(() => {
     setPhase('record');
     // Auto-start recording
-    setTimeout(() => {
-      startRecording();
+    setTimeout(async () => {
+      try {
+        await startRecording();
+      } catch (error) {
+        console.error('Failed to start recording:', error);
+        // Show the error from useAudioRecorder hook, it has better mobile-specific messages
+      }
     }, 500);
   }, [startRecording]);
 
@@ -334,8 +339,13 @@ export default function PracticeRunner({
         audioRef.current.src = '';
       }
 
-      // Create and play new audio
-      audioRef.current = new Audio(audioUrl);
+      // Create and play new audio - mobile-friendly approach
+      audioRef.current = new Audio();
+
+      // Set properties before setting src (important for mobile)
+      audioRef.current.preload = 'auto';
+      // Critical for iOS - cast to any since playsInline is not in TypeScript definitions
+      (audioRef.current as any).playsInline = true;
 
       audioRef.current.onended = () => {
         if (isMountedRef.current) {
@@ -347,7 +357,7 @@ export default function PracticeRunner({
       audioRef.current.onerror = (_e) => {
         // Only show error if component is still mounted and it's a real error
         if (isMountedRef.current && audioRef.current?.error?.code !== 4) { // 4 = MEDIA_ERR_SRC_NOT_SUPPORTED (happens during cleanup)
-          toast.error('Audio playback failed - check your browser settings');
+          toast.error('Audio playback failed - try tapping the play button again');
         }
         if (isMountedRef.current) {
           setIsPlaying(false);
@@ -355,7 +365,22 @@ export default function PracticeRunner({
         URL.revokeObjectURL(audioUrl);
       };
 
-      await audioRef.current.play();
+      // Set source after event handlers are attached
+      audioRef.current.src = audioUrl;
+
+      // Load the audio first, then play (important for mobile)
+      audioRef.current.load();
+
+      try {
+        await audioRef.current.play();
+      } catch (playError) {
+        console.log('Auto-play failed, user interaction required:', playError);
+        // On mobile, we often need user interaction - show a user-friendly message
+        if (playError instanceof Error && playError.name === 'NotAllowedError') {
+          toast.info('Tap the play button to hear the audio');
+        }
+        throw playError;
+      }
 
       // Mark audio as loaded and start prep timer
       if (!audioLoaded) {
@@ -513,14 +538,25 @@ export default function PracticeRunner({
   }, [sessionId, question.id, supabaseUserId, question.type]);
   
   // Auto-load audio for listen_then_speak questions - separate effect to prevent double trigger
+  // Disable auto-play on mobile browsers to avoid issues
   useEffect(() => {
     if (question.type === 'listen_then_speak' && phase === 'prep' && !audioLoaded && !isPlaying) {
-      // Small delay to ensure component is mounted
-      const timer = setTimeout(() => {
-        handlePlayAudio();
-      }, 500);
+      // Check if we're on a mobile device
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-      return () => clearTimeout(timer);
+      if (!isMobile) {
+        // Only auto-play on desktop
+        const timer = setTimeout(() => {
+          handlePlayAudio();
+        }, 500);
+
+        return () => clearTimeout(timer);
+      } else {
+        // On mobile, just mark as "ready to play" and start timer
+        console.log('Mobile device detected, requiring user interaction for audio');
+        setAudioLoaded(true);
+        setPrepStarted(true);
+      }
     }
   }, [question.type, phase, audioLoaded, isPlaying, handlePlayAudio]);
 
@@ -576,7 +612,7 @@ export default function PracticeRunner({
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">
               Get Ready
             </h2>
-            {question.type === 'listen_then_speak' && !audioLoaded ? (
+            {question.type === 'listen_then_speak' && !audioLoaded && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? (
               <div>
                 <div className="text-lg text-gray-600 mb-2">Loading audio...</div>
                 <p className="text-sm text-gray-500">Timer will start after audio loads</p>
@@ -601,20 +637,25 @@ export default function PracticeRunner({
           </div>
 
           {question.type === 'listen_then_speak' && (
-            <div className="flex justify-center mb-6">
+            <div className="flex flex-col items-center mb-6">
               <button
                 onClick={handlePlayAudio}
                 disabled={isPlaying}
-                className="px-6 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors flex items-center gap-2"
+                className="px-6 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors flex items-center gap-2 mb-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {isPlaying ? 'Playing...' : 'Play Audio'}
               </button>
+              {/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) && !audioLoaded && (
+                <p className="text-xs sm:text-sm text-gray-500 text-center">
+                  📱 Tap the play button above to hear the audio prompt
+                </p>
+              )}
             </div>
           )}
 
