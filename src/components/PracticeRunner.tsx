@@ -118,23 +118,42 @@ export default function PracticeRunner({
 
       // If it's a temporary session, create a real practice session now
       if (isTemporarySession) {
-        const { data: newSession, error: sessionError } = await supabase
-          .from('practice_sessions')
-          .insert({
-            user_id: supabaseUserId,
-            started_at: new Date().toISOString(),
-            ended_at: null // Will be updated when grading completes
-          })
-          .select()
-          .single();
+        console.log('Creating real practice session via API...');
 
-        if (sessionError || !newSession) {
-          console.error('Error creating practice session:', sessionError);
-          throw new Error('Failed to create practice session');
+        // Use API route to create session (has proper permissions)
+        const sessionResponse = await fetch('/api/practice-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!sessionResponse.ok) {
+          const errorData = await sessionResponse.json();
+          console.error('Failed to create practice session:', errorData);
+
+          if (sessionResponse.status === 401) {
+            throw new Error('Authentication required. Please sign in again.');
+          } else if (sessionResponse.status === 404) {
+            throw new Error('User not found. Please sign out and sign in again.');
+          }
+
+          throw new Error(errorData.error || 'Failed to create practice session');
         }
 
-        actualSessionId = newSession.id;
-        console.log('Created new practice session:', actualSessionId);
+        const { sessionId: newSessionId, userId } = await sessionResponse.json();
+
+        if (!newSessionId) {
+          throw new Error('Failed to create practice session: No session ID returned');
+        }
+
+        actualSessionId = newSessionId;
+        console.log('Successfully created practice session:', actualSessionId);
+
+        // Verify the user ID matches
+        if (userId !== supabaseUserId) {
+          console.warn('User ID mismatch:', { expected: supabaseUserId, received: userId });
+        }
       }
 
       console.log('Question details:', {
@@ -143,37 +162,44 @@ export default function PracticeRunner({
         prompt: question.prompt?.substring(0, 100) // First 100 chars
       });
 
-      // Build the insert object
-      const attemptData = {
-        id: attemptId,
-        session_id: actualSessionId,
-        question_id: question.id,
-        user_id: supabaseUserId,
-        type_id: question.type,
-        prompt_text: question.prompt || '',
-        audio_url: audioUrl,
-        transcript: null, // Will be filled by grading
-        score: null, // Will be filled by grading
-        feedback: null, // Will be filled by grading
-        attempted_at: new Date().toISOString()
-      };
+      // Submit attempt via API route (has proper permissions)
+      console.log('Submitting attempt via API...');
 
-      console.log('Inserting attempt with data:', attemptData);
+      const submitResponse = await fetch('/api/submit-attempt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          attemptId,
+          sessionId: actualSessionId,
+          questionId: question.id,
+          questionType: question.type,
+          promptText: question.prompt || '',
+          audioUrl
+        })
+      });
 
-      const { error: attemptError } = await supabase
-        .from('attempts')
-        .insert(attemptData);
+      if (!submitResponse.ok) {
+        const errorData = await submitResponse.json();
+        console.error('Failed to submit attempt:', errorData);
 
-      if (attemptError) {
-        console.error('Attempt insert error:', JSON.stringify(attemptError, null, 2));
-        console.error('Attempt insert error details:', {
-          message: attemptError.message,
-          code: attemptError.code,
-          details: attemptError.details,
-          hint: attemptError.hint
-        });
-        throw attemptError;
+        if (submitResponse.status === 401) {
+          throw new Error('Authentication required. Please sign in again.');
+        } else if (submitResponse.status === 400) {
+          throw new Error('Invalid attempt data. Please try again.');
+        }
+
+        throw new Error(errorData.error || 'Failed to submit attempt');
       }
+
+      const { success, attemptId: confirmedAttemptId } = await submitResponse.json();
+
+      if (!success) {
+        throw new Error('Failed to submit attempt');
+      }
+
+      console.log('Attempt submitted successfully:', confirmedAttemptId);
 
       // Update daily activity
       await fetch('/api/activity/ping', {
