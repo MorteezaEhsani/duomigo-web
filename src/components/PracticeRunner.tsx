@@ -344,8 +344,8 @@ export default function PracticeRunner({
 
       // Set properties before setting src (important for mobile)
       audioRef.current.preload = 'auto';
-      // Critical for iOS - cast to any since playsInline is not in TypeScript definitions
-      (audioRef.current as any).playsInline = true;
+      // Critical for iOS - playsInline is not in TypeScript definitions but is a valid property
+      (audioRef.current as HTMLAudioElement & { playsInline: boolean }).playsInline = true;
 
       audioRef.current.onended = () => {
         if (isMountedRef.current) {
