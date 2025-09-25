@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth, useUser } from "@clerk/nextjs";
+import Link from "next/link";
 
 export default function TestClerkPage() {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
@@ -54,15 +55,15 @@ export default function TestClerkPage() {
           </div>
 
           <div className="pt-4 border-t space-y-2">
-            <a href="/sign-in" className="block w-full bg-blue-500 text-white text-center py-2 rounded hover:bg-blue-600">
+            <Link href="/sign-in" className="block w-full bg-blue-500 text-white text-center py-2 rounded hover:bg-blue-600">
               Go to Sign In
-            </a>
-            <a href="/sign-up" className="block w-full bg-green-500 text-white text-center py-2 rounded hover:bg-green-600">
+            </Link>
+            <Link href="/sign-up" className="block w-full bg-green-500 text-white text-center py-2 rounded hover:bg-green-600">
               Go to Sign Up
-            </a>
-            <a href="/app" className="block w-full bg-gray-500 text-white text-center py-2 rounded hover:bg-gray-600">
+            </Link>
+            <Link href="/app" className="block w-full bg-gray-500 text-white text-center py-2 rounded hover:bg-gray-600">
               Go to App (Protected)
-            </a>
+            </Link>
           </div>
         </div>
       </div>
