@@ -2,8 +2,9 @@
 # Go to: Vercel Dashboard → Your Project → Settings → Environment Variables
 
 # CLERK AUTHENTICATION (ALL REQUIRED)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_ZXhjaXRlZC1tb25rZmlzaC03My5jbGVyay5hY2NvdW50cy5kZXYk
-CLERK_SECRET_KEY=sk_test_KHY7HAXMoJiFPHxWnf5r6Z2IVcLCYiwDiRLTUYc1KK
+# If you have pk_live_ keys (production), use those instead of pk_test_
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=[Your pk_live_ or pk_test_ key]
+CLERK_SECRET_KEY=[Your sk_live_ or sk_test_ key]
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/app
