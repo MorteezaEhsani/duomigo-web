@@ -22,7 +22,7 @@ export default function TestClerkPage() {
 
     // Check if Clerk global is available
     if (typeof window !== 'undefined') {
-      console.log('Window.Clerk exists:', !!(window as any).Clerk);
+      console.log('Window.Clerk exists:', !!(window as Window & { Clerk?: unknown }).Clerk);
     }
   }, [authLoaded, userLoaded, isSignedIn]);
 
