@@ -2,15 +2,46 @@
 
 import { useAuth, useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { useEffect } from "react";
 
 export default function TestClerkPage() {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { isLoaded: userLoaded, user } = useUser();
 
+  useEffect(() => {
+    // Log all Clerk-related environment variables
+    console.log('=== CLERK DEBUG INFO ===');
+    console.log('Publishable Key:', process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? 'EXISTS' : 'MISSING');
+    console.log('Sign In URL:', process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || 'MISSING');
+    console.log('Sign Up URL:', process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || 'MISSING');
+    console.log('After Sign In URL:', process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || 'MISSING');
+    console.log('After Sign Up URL:', process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || 'MISSING');
+    console.log('Auth Loaded:', authLoaded);
+    console.log('User Loaded:', userLoaded);
+    console.log('Is Signed In:', isSignedIn);
+
+    // Check if Clerk global is available
+    if (typeof window !== 'undefined') {
+      console.log('Window.Clerk exists:', !!(window as any).Clerk);
+    }
+  }, [authLoaded, userLoaded, isSignedIn]);
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Clerk Debug Information</h1>
+
+        {/* Critical Warning if env vars are missing */}
+        {(!process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ||
+          !process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL) && (
+          <div className="bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            <p className="font-bold">⚠️ CRITICAL: Environment Variables Missing!</p>
+            <p className="text-sm mt-2">
+              The required Clerk URL environment variables are not set in Vercel.
+              Please add them immediately in your Vercel Dashboard.
+            </p>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow p-6 space-y-4">
           <div>
