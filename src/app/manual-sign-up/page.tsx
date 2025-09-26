@@ -21,8 +21,14 @@ export default function ManualSignUpPage() {
 
       try {
         // Initialize Clerk manually
-        const Clerk = (window as Window & { Clerk?: any }).Clerk;
-        if (Clerk) {
+        interface ClerkConstructor {
+          new(key: string): {
+            load: (options?: object) => Promise<void>;
+            mountSignUp: (element: HTMLElement | null, options?: object) => void;
+          };
+        }
+        const Clerk = (window as Window & { Clerk?: ClerkConstructor }).Clerk;
+        if (Clerk && pk) {
           const clerkInstance = new Clerk(pk);
           await clerkInstance.load({
             // Force standard domain
