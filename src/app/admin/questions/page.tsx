@@ -6,7 +6,7 @@ import AdminQuestionsClient from './AdminQuestionsClient';
 const ADMIN_EMAILS = process.env.ADMIN_EMAILS
   ? process.env.ADMIN_EMAILS.split(',').map(email => email.trim())
   : [
-      'mortezaehsani@gmail.com', // Primary admin
+      'morteezaehsani@gmail.com', // Primary admin (corrected spelling)
       'admin@duomigo.com', // Backup admin email
     ];
 
