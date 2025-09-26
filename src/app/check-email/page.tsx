@@ -62,7 +62,7 @@ export default async function CheckEmailPage() {
               {!isAdmin && (
                 <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
                   <p className="text-sm text-yellow-800">
-                    Your email "{userEmail}" is not in the admin list.
+                    Your email &quot;{userEmail}&quot; is not in the admin list.
                     Make sure it matches exactly (case-sensitive).
                   </p>
                 </div>
