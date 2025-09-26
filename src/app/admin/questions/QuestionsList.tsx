@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { Database } from '@/types/database.types';
 
@@ -18,12 +17,14 @@ export default function QuestionsList({ onEdit }: QuestionsListProps) {
 
   const fetchQuestions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('questions')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await fetch('/api/admin/questions/manage');
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch questions');
+      }
+
+      const { data } = await response.json();
       setQuestions(data || []);
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -42,18 +43,21 @@ export default function QuestionsList({ onEdit }: QuestionsListProps) {
 
     setDeleting(id);
     try {
-      const { error } = await supabase
-        .from('questions')
-        .delete()
-        .eq('id', id);
+      const response = await fetch(`/api/admin/questions/manage?id=${id}`, {
+        method: 'DELETE'
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete question');
+      }
 
       toast.success('Question deleted successfully');
       setQuestions(questions.filter(q => q.id !== id));
     } catch (error) {
       console.error('Error deleting question:', error);
-      toast.error('Failed to delete question');
+      const message = error instanceof Error ? error.message : 'Failed to delete question';
+      toast.error(message);
     } finally {
       setDeleting(null);
     }

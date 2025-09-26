@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import QuestionsList from './QuestionsList';
 import type { Database } from '@/types/database.types';
@@ -77,21 +76,32 @@ export default function AdminQuestionsClient() {
       };
 
       if (editingId) {
-        // Update existing question
-        const { error } = await supabase
-          .from('questions')
-          .update(questionData)
-          .eq('id', editingId);
+        // Update existing question via API
+        const response = await fetch('/api/admin/questions/manage', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingId, ...questionData })
+        });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to update question');
+        }
+
         toast.success('Question updated successfully!');
       } else {
-        // Add new question
-        const { error } = await supabase
-          .from('questions')
-          .insert(questionData);
+        // Add new question via API
+        const response = await fetch('/api/admin/questions/manage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(questionData)
+        });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to add question');
+        }
+
         toast.success('Question added successfully!');
       }
 
@@ -112,7 +122,8 @@ export default function AdminQuestionsClient() {
       setRefreshList(prev => prev + 1); // Trigger list refresh
     } catch (error) {
       console.error('Error saving question:', error);
-      toast.error(editingId ? 'Failed to update question' : 'Failed to add question');
+      const message = error instanceof Error ? error.message : 'Failed to save question';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
