@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import QuestionsList from './QuestionsList';
@@ -23,7 +23,9 @@ interface QuestionFormData {
 
 export default function AdminQuestionsClient() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [refreshList, setRefreshList] = useState(0);
@@ -145,6 +147,49 @@ export default function AdminQuestionsClient() {
     setShowForm(false);
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file.');
+      return;
+    }
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload image');
+      }
+
+      const { url } = await response.json();
+      setFormData(prev => ({ ...prev, imageUrl: url }));
+      toast.success('Image uploaded successfully!');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      const message = error instanceof Error ? error.message : 'Failed to upload image';
+      toast.error(message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
@@ -220,23 +265,92 @@ export default function AdminQuestionsClient() {
                 />
               </div>
 
-              {/* Image URL (only for speak_about_photo) */}
+              {/* Image Upload (only for speak_about_photo) */}
               {formData.type === 'speak_about_photo' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Image URL
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                    placeholder="https://example.com/image.jpg"
-                    required={formData.type === 'speak_about_photo'}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Upload image to Supabase storage or another service and paste the URL here
-                  </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Upload Image
+                    </label>
+
+                    {/* Upload Button */}
+                    <div className="flex items-center gap-4">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                      >
+                        {uploadingImage ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            📷 Choose Image
+                          </>
+                        )}
+                      </button>
+
+                      {formData.imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                          className="text-red-500 hover:text-red-600 text-sm"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-gray-500 mt-2">
+                      Max file size: 5MB. Supported formats: JPEG, PNG, GIF, WebP
+                    </p>
+                  </div>
+
+                  {/* Image Preview */}
+                  {formData.imageUrl && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Preview
+                      </label>
+                      <div className="relative w-full max-w-md">
+                        <img
+                          src={formData.imageUrl}
+                          alt="Preview"
+                          className="w-full rounded-lg border border-gray-300 shadow-sm"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjIwMCIgeT0iMTUwIiBzdHlsZT0iZmlsbDojOTk5O2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1zaXplOjIwcHg7Zm9udC1mYW1pbHk6QXJpYWwsc2Fucy1zZXJpZiI+SW1hZ2UgZmFpbGVkIHRvIGxvYWQ8L3RleHQ+PC9zdmc+';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual URL Input (Optional) */}
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-gray-600 hover:text-gray-800">
+                      Or paste image URL directly
+                    </summary>
+                    <div className="mt-2">
+                      <input
+                        type="url"
+                        value={formData.imageUrl}
+                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                  </details>
                 </div>
               )}
 
