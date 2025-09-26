@@ -48,7 +48,7 @@ export default function AdminQuestionsClient() {
       prompt: question.prompt,
       targetLanguage: question.target_language,
       sourceLanguage: question.source_language,
-      difficulty: question.difficulty,
+      difficulty: question.difficulty || 2,
       prepSeconds: question.prep_seconds,
       minSeconds: question.min_seconds,
       maxSeconds: question.max_seconds,

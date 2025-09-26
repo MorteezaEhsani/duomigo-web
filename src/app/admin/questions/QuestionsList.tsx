@@ -68,8 +68,9 @@ export default function QuestionsList({ onEdit }: QuestionsListProps) {
     }
   };
 
-  const getDifficultyStars = (difficulty: number) => {
-    return '⭐'.repeat(difficulty) + '☆'.repeat(5 - difficulty);
+  const getDifficultyStars = (difficulty: number | null) => {
+    const level = difficulty || 2;
+    return '⭐'.repeat(level) + '☆'.repeat(5 - level);
   };
 
   if (loading) {
