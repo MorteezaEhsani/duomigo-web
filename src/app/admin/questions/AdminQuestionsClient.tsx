@@ -60,6 +60,13 @@ export default function AdminQuestionsClient() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate image is present for speak_about_photo
+    if (formData.type === 'speak_about_photo' && !formData.imageUrl) {
+      toast.error('Please upload or provide an image URL for this question type');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -151,6 +158,8 @@ export default function AdminQuestionsClient() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log('Uploading file:', file.name, 'Type:', file.type, 'Size:', file.size);
+
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('File too large. Maximum size is 5MB.');
@@ -173,14 +182,20 @@ export default function AdminQuestionsClient() {
         body: formData,
       });
 
+      const result = await response.json();
+      console.log('Upload response:', result);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to upload image');
+        throw new Error(result.error || 'Failed to upload image');
       }
 
-      const { url } = await response.json();
-      setFormData(prev => ({ ...prev, imageUrl: url }));
+      setFormData(prev => ({ ...prev, imageUrl: result.url }));
       toast.success('Image uploaded successfully!');
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (error) {
       console.error('Error uploading image:', error);
       const message = error instanceof Error ? error.message : 'Failed to upload image';
@@ -344,7 +359,7 @@ export default function AdminQuestionsClient() {
                     <div className="mt-2">
                       <input
                         type="url"
-                        value={formData.imageUrl}
+                        value={formData.imageUrl || ''}
                         onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                         placeholder="https://example.com/image.jpg"

@@ -67,9 +67,25 @@ export async function POST(request: NextRequest) {
 
     const supabase = getAdminSupabaseClient();
 
+    // First, check if the bucket exists, if not create it
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(bucket => bucket.name === 'question_media');
+
+    if (!bucketExists) {
+      const { error: createError } = await supabase.storage.createBucket('question_media', {
+        public: true,
+        allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      });
+
+      if (createError) {
+        console.error('Error creating bucket:', createError);
+        // Bucket might already exist, continue anyway
+      }
+    }
+
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
-      .from('media')
+      .from('question_media')
       .upload(fileName, buffer, {
         contentType: file.type,
         cacheControl: '3600',
@@ -78,12 +94,16 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Upload error:', error);
+      // If bucket doesn't exist error, provide helpful message
+      if (error.message?.includes('not found')) {
+        throw new Error('Storage bucket "question_media" not found. Please create it in Supabase Dashboard.');
+      }
       throw error;
     }
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('media')
+      .from('question_media')
       .getPublicUrl(fileName);
 
     return NextResponse.json({
