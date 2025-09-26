@@ -24,7 +24,7 @@ export function ClerkInit() {
       });
 
       // Force Clerk to reinitialize if needed
-      if ((window as any).Clerk === undefined) {
+      if ((window as Window & { Clerk?: unknown }).Clerk === undefined) {
         console.log('Clerk not loaded - may be blocked by SSL error');
       }
     }

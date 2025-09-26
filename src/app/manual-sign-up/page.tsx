@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 export default function ManualSignUpPage() {
   const [clerkLoaded, setClerkLoaded] = useState(false);
@@ -20,7 +21,7 @@ export default function ManualSignUpPage() {
 
       try {
         // Initialize Clerk manually
-        const Clerk = (window as any).Clerk;
+        const Clerk = (window as Window & { Clerk?: any }).Clerk;
         if (Clerk) {
           const clerkInstance = new Clerk(pk);
           await clerkInstance.load({
@@ -91,7 +92,7 @@ export default function ManualSignUpPage() {
         <div id="sign-up-container"></div>
 
         <div className="mt-8 text-center text-sm text-gray-600">
-          <p>Already have an account? <a href="/sign-in" className="text-amber-600 hover:text-amber-700">Sign in</a></p>
+          <p>Already have an account? <Link href="/sign-in" className="text-amber-600 hover:text-amber-700">Sign in</Link></p>
         </div>
       </div>
     </div>
