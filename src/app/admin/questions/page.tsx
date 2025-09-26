@@ -24,14 +24,21 @@ export default async function AdminQuestionsPage() {
 
   const userEmail = user?.emailAddresses[0]?.emailAddress;
 
-  // Debug logging (remove in production)
+  // Debug logging - this will show in Vercel logs
   console.log('Admin access check:', {
     userEmail,
     adminEmails: ADMIN_EMAILS,
-    isAdmin: userEmail ? ADMIN_EMAILS.includes(userEmail) : false
+    isAdmin: userEmail ? ADMIN_EMAILS.includes(userEmail) : false,
+    emailMatch: userEmail === 'morteezaehsani@gmail.com'
   });
 
-  if (!userEmail || !ADMIN_EMAILS.includes(userEmail)) {
+  // Check if user email matches admin list (case-insensitive)
+  const isAdmin = userEmail && ADMIN_EMAILS.some(
+    adminEmail => adminEmail.toLowerCase() === userEmail.toLowerCase()
+  );
+
+  if (!isAdmin) {
+    console.log('Access denied - redirecting to /app');
     redirect('/app'); // Redirect non-admins to dashboard
   }
 
