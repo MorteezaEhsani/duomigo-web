@@ -14,7 +14,7 @@ interface QuestionsListProps {
 export default function QuestionsList({ onEdit }: QuestionsListProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const fetchQuestions = async () => {
     try {
@@ -37,7 +37,7 @@ export default function QuestionsList({ onEdit }: QuestionsListProps) {
     fetchQuestions();
   }, []);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this question?')) return;
 
     setDeleting(id);

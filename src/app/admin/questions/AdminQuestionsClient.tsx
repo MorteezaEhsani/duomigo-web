@@ -25,7 +25,7 @@ interface QuestionFormData {
 export default function AdminQuestionsClient() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [refreshList, setRefreshList] = useState(0);
 
