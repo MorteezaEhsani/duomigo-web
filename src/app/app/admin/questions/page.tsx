@@ -53,9 +53,14 @@ export default async function AdminQuestionsPage() {
 
   // Define the only allowed question types for admin
   const questionTypes = [
+    // Speaking types
     { id: 'listen_then_speak', label: 'Listen, Then Speak', description: 'User hears a prompt and speaks about it' },
     { id: 'read_then_speak', label: 'Read, Then Speak', description: 'User reads text and speaks about it' },
-    { id: 'speak_about_photo', label: 'Speak About the Photo', description: 'User describes what they see in a photo' }
+    { id: 'speak_about_photo', label: 'Speak About the Photo', description: 'User describes what they see in a photo' },
+    // Writing types
+    { id: 'writing_sample', label: 'Writing Sample', description: 'User writes about a topic for up to 5 minutes' },
+    { id: 'interactive_writing', label: 'Interactive Writing', description: 'User writes an initial response, then a follow-up for 3 minutes' },
+    { id: 'write_about_photo', label: 'Write About Photo', description: 'User describes an image in writing for 1 minute' }
   ];
 
   return (

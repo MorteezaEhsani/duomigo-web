@@ -167,10 +167,10 @@ export default function StreakPanel() {
             const isToday = date === today;
 
             return (
-              <div key={date} className="flex justify-center">
+              <div key={date} className="flex justify-center items-center">
                 <div
                   className={`
-                    relative flex items-center justify-center rounded-full
+                    relative flex items-center justify-center rounded-full flex-shrink-0
                     font-medium text-xs sm:text-sm transition-all duration-200
                     ${status === 'completed'
                       ? 'bg-amber-500 text-white'
@@ -184,8 +184,9 @@ export default function StreakPanel() {
                       ? 'bg-gray-100 text-gray-400 opacity-40 cursor-not-allowed'
                       : 'border border-gray-300 text-gray-900'
                     }
-                    w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14
+                    w-9 h-9 sm:w-10 sm:h-10 lg:w-12 lg:h-12
                   `}
+                  style={{ aspectRatio: '1/1' }}
                 >
                   {dayNum}
                 </div>

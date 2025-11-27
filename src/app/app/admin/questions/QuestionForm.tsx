@@ -43,16 +43,35 @@ export default function QuestionForm({
   loading 
 }: QuestionFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get default timing based on question type
+  const getDefaultTiming = (type: string) => {
+    switch (type) {
+      case 'writing_sample':
+        return { prep_seconds: 30, min_seconds: 60, max_seconds: 300 };
+      case 'interactive_writing':
+        return { prep_seconds: 0, min_seconds: 300, max_seconds: 480 };
+      case 'write_about_photo':
+        return { prep_seconds: 20, min_seconds: 20, max_seconds: 60 };
+      default:
+        // Speaking defaults
+        return { prep_seconds: 20, min_seconds: 30, max_seconds: 90 };
+    }
+  };
+
+  const initialType = question?.type || questionTypes[0]?.id || 'listen_then_speak';
+  const defaultTiming = getDefaultTiming(initialType);
+
   const [formData, setFormData] = useState({
-    type: question?.type || questionTypes[0]?.id || 'listen_then_speak',
+    type: initialType,
     prompt: question?.prompt || '',
     image_url: question?.image_url || '',
     target_language: question?.target_language || 'English',
     source_language: question?.source_language || 'English',
     difficulty: question?.difficulty || 1,
-    prep_seconds: question?.prep_seconds || 20,
-    min_seconds: question?.min_seconds || 30,
-    max_seconds: question?.max_seconds || 90,
+    prep_seconds: question?.prep_seconds || defaultTiming.prep_seconds,
+    min_seconds: question?.min_seconds || defaultTiming.min_seconds,
+    max_seconds: question?.max_seconds || defaultTiming.max_seconds,
     metadata: question?.metadata || {}
   });
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -138,7 +157,20 @@ export default function QuestionForm({
   };
 
   const handleChange = (field: string, value: string | number | null) => {
-    setFormData({ ...formData, [field]: value });
+    // If changing question type, update timing defaults
+    if (field === 'type' && typeof value === 'string') {
+      const timing = getDefaultTiming(value);
+      setFormData({
+        ...formData,
+        [field]: value,
+        prep_seconds: timing.prep_seconds,
+        min_seconds: timing.min_seconds,
+        max_seconds: timing.max_seconds
+      });
+    } else {
+      setFormData({ ...formData, [field]: value });
+    }
+
     // Clear error for this field
     if (errors[field]) {
       setErrors({ ...errors, [field]: '' });
@@ -176,7 +208,7 @@ export default function QuestionForm({
           {/* Prompt */}
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-2">
-              {formData.type === 'speak_about_photo' ? 'Instructions for the Photo' : 'Prompt Text'}
+              {(formData.type === 'speak_about_photo' || formData.type === 'write_about_photo') ? 'Instructions for the Photo' : 'Prompt Text'}
             </label>
             <textarea
               value={formData.prompt}
@@ -184,7 +216,7 @@ export default function QuestionForm({
               rows={3}
               className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
               placeholder={
-                formData.type === 'speak_about_photo' 
+                (formData.type === 'speak_about_photo' || formData.type === 'write_about_photo')
                   ? "Enter instructions for what the user should describe about the photo..."
                   : "Enter the question prompt..."
               }
@@ -192,8 +224,8 @@ export default function QuestionForm({
             {errors.prompt && <p className="mt-1 text-sm text-red-600">{errors.prompt}</p>}
           </div>
 
-          {/* Image Upload for speak_about_photo */}
-          {formData.type === 'speak_about_photo' && (
+          {/* Image Upload for photo-based questions */}
+          {(formData.type === 'speak_about_photo' || formData.type === 'write_about_photo') && (
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Image <span className="text-red-500">*</span>

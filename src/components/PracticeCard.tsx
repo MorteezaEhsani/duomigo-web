@@ -28,34 +28,34 @@ export default function PracticeCard({
     <button
       onClick={onClick}
       className={`
-        group relative w-full h-full
-        bg-white rounded-xl
-        shadow-md hover:shadow-xl
+        group relative w-full
+        bg-white rounded-lg
+        shadow-sm hover:shadow-lg
         transition-all duration-200 ease-in-out
         hover:-translate-y-1 hover:scale-[1.02]
         active:scale-[0.98] active:translate-y-0
-        p-3 sm:p-4 md:p-6 text-left
+        p-3 sm:p-4 text-left
         focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2
         ${className}
       `}
       aria-label={`${title} - ${description}`}
     >
       {/* Background color overlay */}
-      <div 
-        className="absolute inset-0 rounded-xl opacity-30 group-hover:opacity-40 transition-opacity duration-200"
+      <div
+        className="absolute inset-0 rounded-lg opacity-30 group-hover:opacity-40 transition-opacity duration-200"
         style={{ backgroundColor: bgColor }}
       />
-      
+
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center text-center h-full justify-between">
+      <div className="relative z-10 flex flex-col items-center text-center justify-between min-h-[140px] sm:min-h-[160px]">
         {/* Icon */}
-        <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 flex items-center justify-center">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center mt-1">
           {iconPath ? (
             <Image
               src={iconPath}
               alt={title}
-              width={80}
-              height={80}
+              width={48}
+              height={48}
               className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-200"
             />
           ) : icon && React.isValidElement(icon) ? (
@@ -75,21 +75,21 @@ export default function PracticeCard({
           )}
         </div>
 
-        <div className="space-y-1 sm:space-y-2">
+        <div className="space-y-0.5 sm:space-y-1 flex-1 flex flex-col justify-center">
           {/* Title */}
-          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 group-hover:text-amber-500 transition-colors duration-200">
+          <h3 className="text-xs sm:text-sm font-semibold text-gray-900 group-hover:text-amber-500 transition-colors duration-200">
             {title}
           </h3>
 
           {/* Description */}
-          <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
+          <p className="text-[10px] sm:text-xs text-gray-600 line-clamp-2">
             {description}
           </p>
         </div>
 
         {/* Arrow indicator */}
         <svg
-          className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 group-hover:text-amber-500 transition-all duration-200 group-hover:translate-x-1"
+          className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500 group-hover:text-amber-500 transition-all duration-200 group-hover:translate-x-1 mb-1"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

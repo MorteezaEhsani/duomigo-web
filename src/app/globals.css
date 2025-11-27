@@ -65,3 +65,23 @@ body {
 .safe-right {
   padding-right: env(safe-area-inset-right);
 }
+
+/* Hide scrollbar for horizontal scroll */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+.overflow-x-auto {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Hide scrollbar for vertical scroll */
+.overflow-y-auto::-webkit-scrollbar {
+  display: none;
+}
+
+.overflow-y-auto {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

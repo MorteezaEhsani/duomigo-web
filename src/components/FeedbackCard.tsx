@@ -71,6 +71,10 @@ export default function FeedbackCard({ feedback, onRetry }: FeedbackCardProps) {
     }
   };
 
+  const getScoreColor = (_score: number) => {
+    return 'text-gray-700';
+  };
+
   const pretty = (k: string) =>
     k.substring(0, 1).toUpperCase() + k.substring(1).replaceAll('_', ' ');
 
@@ -151,7 +155,7 @@ ${grammarSection}`.trim();
         {/* Header (Overall + CEFR badge) */}
         <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-amber-50 to-orange-50">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
-            Overall: <span className="text-amber-600">{Math.round(feedback.overall ?? 0)}</span>
+            Overall: <span className={getScoreColor(feedback.overall ?? 0)}>{Math.round(feedback.overall ?? 0)}</span>
           </h2>
           <span
             className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold ${cefrClasses(
@@ -320,8 +324,8 @@ ${grammarSection}`.trim();
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
-            <span className="hidden sm:inline">Back to Dashboard</span>
-            <span className="sm:hidden">Dashboard</span>
+            <span className="hidden sm:inline">Back to Homescreen</span>
+            <span className="sm:hidden">Home</span>
           </button>
           <button
             onClick={onRetry}

@@ -8,14 +8,19 @@ import QuestionForm from './QuestionForm';
 // Validation schemas
 const BaseQuestionSchema = z.object({
   type: z.enum([
-    'listen_then_speak', 
+    // Speaking types
+    'listen_then_speak',
     'read_then_speak',
     'speak_about_photo',
+    // Writing types
+    'writing_sample',
+    'interactive_writing',
+    'write_about_photo',
     // Keep other types for validation of existing questions
-    'read_aloud', 
-    'describe_image', 
-    'answer_question', 
-    'speak_on_topic', 
+    'read_aloud',
+    'describe_image',
+    'answer_question',
+    'speak_on_topic',
     'custom_prompt'
   ]),
   prompt: z.string().min(1, 'Prompt is required').max(1000),
@@ -29,14 +34,14 @@ const BaseQuestionSchema = z.object({
   image_url: z.string().nullable().optional(),
 }).refine(
   (data) => {
-    // Require image_url for speak_about_photo questions
-    if (data.type === 'speak_about_photo') {
+    // Require image_url for photo-based questions
+    if (data.type === 'speak_about_photo' || data.type === 'write_about_photo') {
       return data.image_url && data.image_url.length > 0;
     }
     return true;
   },
   {
-    message: "Image is required for 'Speak About the Photo' questions",
+    message: "Image is required for photo-based questions",
     path: ['image_url'],
   }
 );
