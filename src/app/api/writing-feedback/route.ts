@@ -219,7 +219,7 @@ The overall scores should reflect the combined performance across both parts.`;
         response_text: validatedData.writingText,
         response_type: 'text',
         score: validatedFeedback.overall,
-        feedback: validatedFeedback,
+        feedback: JSON.stringify(validatedFeedback),
         created_at: new Date().toISOString(),
         metadata: {
           duration: validatedData.duration,
@@ -240,7 +240,7 @@ The overall scores should reflect the combined performance across both parts.`;
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }
