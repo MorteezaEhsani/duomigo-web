@@ -733,7 +733,6 @@ export default function WritingRunnerClient({
                 onChange={(e) => setWritingText(e.target.value)}
                 className="w-full h-96 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none text-gray-900"
                 placeholder="Start writing here..."
-                disabled={phase === 'prep'}
                 spellCheck={false}
               />
               <div className="mt-4 flex justify-end gap-3">
@@ -746,7 +745,6 @@ export default function WritingRunnerClient({
                 <button
                   onClick={handleComplete}
                   className="px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  disabled={phase === 'prep'}
                 >
                   {writingType === 'interactive_writing' && phase === 'write' ? 'Continue' : 'Submit'}
                 </button>
