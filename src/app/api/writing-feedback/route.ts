@@ -216,16 +216,17 @@ The overall scores should reflect the combined performance across both parts.`;
         id: attemptId,
         session_id: validatedData.sessionId,
         question_id: validatedData.questionId,
-        response_text: validatedData.writingText,
-        response_type: 'text',
+        user_id: supabaseUserId,
+        transcript: validatedData.writingText,
         score: validatedFeedback.overall,
+        overall_score: validatedFeedback.overall,
+        grammar_score: validatedFeedback.grammar / 20, // Convert 0-100 to 0-5
+        vocabulary_score: validatedFeedback.lexical_resource / 20, // Convert 0-100 to 0-5
+        coherence_score: validatedFeedback.coherence / 20, // Convert 0-100 to 0-5
         feedback: JSON.stringify(validatedFeedback),
-        created_at: new Date().toISOString(),
-        metadata: {
-          duration: validatedData.duration,
-          wordCount,
-          questionType: validatedData.questionType
-        }
+        feedback_json: validatedFeedback,
+        graded_at: new Date().toISOString(),
+        attempted_at: new Date().toISOString()
       });
 
     if (insertError) {
