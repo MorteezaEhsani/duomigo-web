@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 
 interface PracticeCardProps {
@@ -24,9 +24,17 @@ export default function PracticeCard({
   onClick,
   className = '',
 }: PracticeCardProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleClick = () => {
+    setIsLoading(true);
+    onClick();
+  };
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
+      disabled={isLoading}
       className={`
         group relative w-full
         bg-white rounded-lg
@@ -36,6 +44,7 @@ export default function PracticeCard({
         active:scale-[0.98] active:translate-y-0
         p-3 sm:p-4 text-left
         focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2
+        disabled:cursor-not-allowed disabled:opacity-80 disabled:hover:translate-y-0 disabled:hover:scale-100 disabled:hover:shadow-sm
         ${className}
       `}
       aria-label={`${title} - ${description}`}
@@ -49,13 +58,14 @@ export default function PracticeCard({
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center text-center justify-between min-h-[140px] sm:min-h-[160px]">
         {/* Icon */}
-        <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center mt-1">
+        <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center mt-1">
           {iconPath ? (
             <Image
               src={iconPath}
               alt={title}
-              width={48}
-              height={48}
+              width={112}
+              height={112}
+              quality={100}
               className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-200"
             />
           ) : icon && React.isValidElement(icon) ? (
@@ -87,20 +97,42 @@ export default function PracticeCard({
           </p>
         </div>
 
-        {/* Arrow indicator */}
-        <svg
-          className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500 group-hover:text-amber-500 transition-all duration-200 group-hover:translate-x-1 mb-1"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 7l5 5m0 0l-5 5m5-5H6"
-          />
-        </svg>
+        {/* Arrow indicator or Loading spinner */}
+        {isLoading ? (
+          <svg
+            className="w-3 h-3 sm:w-4 sm:h-4 text-amber-500 animate-spin mb-1"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+        ) : (
+          <svg
+            className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500 group-hover:text-amber-500 transition-all duration-200 group-hover:translate-x-1 mb-1"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 7l5 5m0 0l-5 5m5-5H6"
+            />
+          </svg>
+        )}
       </div>
     </button>
   );

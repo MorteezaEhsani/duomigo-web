@@ -3,6 +3,7 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import OpenAI from 'openai';
 import { z } from 'zod';
+import { updateUserLevel, updatePromptUsageScore } from '@/lib/prompts/selector';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -232,6 +233,30 @@ The overall scores should reflect the combined performance across both parts.`;
     if (insertError) {
       console.error('Error inserting attempt:', insertError);
       // Don't fail the request if we can't store the attempt
+    }
+
+    // Update user's adaptive skill level for writing exercises
+    const adaptiveTypes = ['writing_sample', 'interactive_writing'];
+    if (adaptiveTypes.includes(validatedData.questionType)) {
+      try {
+        await updateUserLevel(
+          supabaseUserId,
+          'writing',
+          validatedData.questionType as 'writing_sample' | 'interactive_writing',
+          validatedFeedback.overall
+        );
+        console.log(`Updated user level for ${validatedData.questionType} with score ${validatedFeedback.overall}`);
+
+        // Try to update prompt usage score - the questionId may be from generated_prompts
+        try {
+          await updatePromptUsageScore(supabaseUserId, validatedData.questionId, validatedFeedback.overall);
+        } catch {
+          // Ignore - question might be from questions table, not generated_prompts
+        }
+      } catch (levelError) {
+        console.error('Error updating user level:', levelError);
+        // Continue - don't fail the feedback response
+      }
     }
 
     return NextResponse.json(validatedFeedback);

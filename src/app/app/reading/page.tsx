@@ -9,5 +9,5 @@ export default async function ReadingPage() {
     redirect('/sign-in');
   }
 
-  return <ReadingClient />;
+  return <ReadingClient userId={userId} />;
 }

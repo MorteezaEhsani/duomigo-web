@@ -2,6 +2,8 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import WritingRunnerClient from './WritingRunnerClient';
+import { selectPromptForUser } from '@/lib/prompts/selector';
+import { WritingSamplePrompt, InteractiveWritingPrompt } from '@/lib/prompts/types';
 
 const VALID_WRITING_TYPES = [
   'writing_sample',
@@ -9,6 +11,9 @@ const VALID_WRITING_TYPES = [
   'write_about_photo',
   'custom_writing'
 ];
+
+// Types that use adaptive AI-generated prompts
+const ADAPTIVE_TYPES = ['writing_sample', 'interactive_writing'];
 
 interface PageProps {
   params: Promise<{
@@ -54,32 +59,78 @@ export default async function WritingPracticePage({ params }: PageProps) {
     started_at: new Date().toISOString()
   };
 
-  // Fetch question from database based on type
   let question;
 
-  // Try to fetch question from database for all writing types
-  const { data: dbQuestion } = await supabase
-    .from('questions')
-    .select('*')
-    .eq('type', resolvedParams.type)
-    .limit(1)
-    .single();
+  // Check if this is an adaptive type (AI-generated prompts)
+  if (ADAPTIVE_TYPES.includes(resolvedParams.type)) {
+    // Use the adaptive prompt system
+    try {
+      const result = await selectPromptForUser(
+        supabaseUserId,
+        'writing',
+        resolvedParams.type as 'writing_sample' | 'interactive_writing'
+      );
 
-  if (dbQuestion) {
-    question = {
-      id: dbQuestion.id,
-      type: resolvedParams.type,
-      prompt: dbQuestion.prompt,
-      image_url: dbQuestion.image_url,
-      prep_seconds: dbQuestion.prep_seconds || (resolvedParams.type === 'writing_sample' ? 30 : resolvedParams.type === 'write_about_photo' ? 20 : 0),
-      min_seconds: dbQuestion.min_seconds || (resolvedParams.type === 'interactive_writing' ? 480 : resolvedParams.type === 'write_about_photo' ? 20 : 60),
-      max_seconds: dbQuestion.max_seconds || (resolvedParams.type === 'interactive_writing' ? 480 : resolvedParams.type === 'write_about_photo' ? 60 : 300),
-      target_language: dbQuestion.target_language,
-      source_language: dbQuestion.source_language
-    };
+      if (result.prompt && result.prompt.prompt_data) {
+        const promptData = result.prompt.prompt_data as WritingSamplePrompt | InteractiveWritingPrompt;
+
+        // Convert adaptive prompt to Question format
+        let promptText = '';
+        if (promptData.type === 'writing_sample') {
+          promptText = promptData.topic;
+        } else if (promptData.type === 'interactive_writing') {
+          promptText = promptData.step1Prompt;
+        }
+
+        question = {
+          id: result.prompt.id,
+          type: resolvedParams.type,
+          prompt: promptText,
+          image_url: null,
+          prep_seconds: resolvedParams.type === 'writing_sample' ? 30 : 0,
+          min_seconds: resolvedParams.type === 'interactive_writing' ? 480 : 60,
+          max_seconds: resolvedParams.type === 'interactive_writing' ? 480 : 300,
+          target_language: 'en',
+          source_language: 'en'
+        };
+
+        console.log(`Selected adaptive writing prompt: ${result.prompt.id} (Level: ${result.userLevel}, Source: ${result.source})`);
+      } else {
+        // Fallback to database questions if no adaptive prompt available
+        console.log('No adaptive prompt available, falling back to database');
+      }
+    } catch (error) {
+      console.error('Error selecting adaptive prompt:', error);
+      // Fall through to database fallback
+    }
   }
 
-  // Fallback to mock question if no database question found
+  // Fallback: use database questions (for write_about_photo, custom_writing, or if adaptive fails)
+  if (!question) {
+    // Try to fetch question from database
+    const { data: dbQuestion } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('type', resolvedParams.type)
+      .limit(1)
+      .single();
+
+    if (dbQuestion) {
+      question = {
+        id: dbQuestion.id,
+        type: resolvedParams.type,
+        prompt: dbQuestion.prompt,
+        image_url: dbQuestion.image_url,
+        prep_seconds: dbQuestion.prep_seconds || (resolvedParams.type === 'writing_sample' ? 30 : resolvedParams.type === 'write_about_photo' ? 20 : 0),
+        min_seconds: dbQuestion.min_seconds || (resolvedParams.type === 'interactive_writing' ? 480 : resolvedParams.type === 'write_about_photo' ? 20 : 60),
+        max_seconds: dbQuestion.max_seconds || (resolvedParams.type === 'interactive_writing' ? 480 : resolvedParams.type === 'write_about_photo' ? 60 : 300),
+        target_language: dbQuestion.target_language,
+        source_language: dbQuestion.source_language
+      };
+    }
+  }
+
+  // Final fallback to mock question if nothing found
   if (!question) {
     question = {
       id: `${resolvedParams.type}_${Date.now()}`,

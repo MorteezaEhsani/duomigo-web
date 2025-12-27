@@ -9,5 +9,5 @@ export default async function ListeningPage() {
     redirect('/sign-in');
   }
 
-  return <ListeningClient />;
+  return <ListeningClient userId={userId} />;
 }

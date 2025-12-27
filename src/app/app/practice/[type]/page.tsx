@@ -2,6 +2,8 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import PracticeRunnerClient from './PracticeRunnerClient';
+import { selectPromptForUser } from '@/lib/prompts/selector';
+import { ListenThenSpeakPrompt, ReadThenSpeakPrompt } from '@/lib/prompts/types';
 
 const VALID_PRACTICE_TYPES = [
   'listen_then_speak',
@@ -9,6 +11,9 @@ const VALID_PRACTICE_TYPES = [
   'read_then_speak',
   'custom_prompt'
 ];
+
+// Types that use adaptive AI-generated prompts
+const ADAPTIVE_TYPES = ['listen_then_speak', 'read_then_speak'];
 
 interface PageProps {
   params: Promise<{
@@ -104,63 +109,99 @@ export default async function PracticeRunnerPage({ params, searchParams }: PageP
       started_at: new Date().toISOString()
     };
 
-    // First, get the user's recent attempts to avoid showing the same questions
-    // Get the last 10 attempts for this question type by this user
-    const recentDays = 7; // Look at questions from the last 7 days
-    const recentLimit = 10; // Track the last 10 questions shown
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - recentDays);
+    // Check if this is an adaptive type (AI-generated prompts)
+    if (ADAPTIVE_TYPES.includes(resolvedParams.type)) {
+      // Use the adaptive prompt system
+      try {
+        const result = await selectPromptForUser(
+          supabaseUserId,
+          'speaking',
+          resolvedParams.type as 'listen_then_speak' | 'read_then_speak'
+        );
 
-    const { data: recentAttempts } = await supabase
-      .from('attempts')
-      .select('question_id')
-      .eq('user_id', supabaseUserId)
-      .eq('type_id', resolvedParams.type)
-      .gte('attempted_at', cutoffDate.toISOString())
-      .order('attempted_at', { ascending: false })
-      .limit(recentLimit);
+        if (result.prompt && result.prompt.prompt_data) {
+          const promptData = result.prompt.prompt_data as ListenThenSpeakPrompt | ReadThenSpeakPrompt;
 
-    const recentQuestionIds = recentAttempts?.map(a => a.question_id) || [];
+          // Convert adaptive prompt to Question format
+          // Use the question prompt (responsePrompt/discussionPrompt), not the statement (audioScript/readingText)
+          let promptText = '';
+          if (promptData.type === 'listen_then_speak') {
+            promptText = promptData.responsePrompt;
+          } else if (promptData.type === 'read_then_speak') {
+            promptText = promptData.discussionPrompt;
+          }
 
-    // Fetch all questions of the given type
-    const { data: allQuestions, error: allQuestionsError } = await supabase
-      .from('questions')
-      .select('*')
-      .eq('type', resolvedParams.type);
+          question = {
+            id: result.prompt.id,
+            type: resolvedParams.type,
+            prompt: promptText,
+            image_url: null,
+            prep_seconds: 20,
+            min_seconds: 30,
+            max_seconds: 90,
+            target_language: 'en',
+            source_language: 'en'
+          };
 
-    if (allQuestionsError || !allQuestions || allQuestions.length === 0) {
-      console.error('Error fetching questions:', allQuestionsError);
-      redirect('/app');
-    }
-
-    // Filter out recently shown questions if possible
-    let availableQuestions = allQuestions.filter(q => !recentQuestionIds.includes(q.id));
-
-    // If all questions have been shown recently, use all questions but prefer the least recently shown
-    if (availableQuestions.length === 0) {
-      console.log('All questions shown recently, using full pool');
-      availableQuestions = allQuestions;
-
-      // If we have more questions than recent attempts, we can still filter
-      if (allQuestions.length > recentQuestionIds.length && recentQuestionIds.length > 0) {
-        // Sort questions to prioritize those not in recent list
-        availableQuestions = [
-          ...allQuestions.filter(q => !recentQuestionIds.includes(q.id)),
-          ...allQuestions.filter(q => recentQuestionIds.includes(q.id))
-        ];
+          console.log(`Selected adaptive prompt: ${result.prompt.id} (Level: ${result.userLevel}, Source: ${result.source})`);
+        } else {
+          // Fallback to database questions if no adaptive prompt available
+          console.log('No adaptive prompt available, falling back to database');
+        }
+      } catch (error) {
+        console.error('Error selecting adaptive prompt:', error);
+        // Fall through to database fallback
       }
     }
 
-    // Select a random question from available pool
-    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
-    question = availableQuestions[randomIndex];
-
+    // Fallback: use database questions (for speak_about_photo or if adaptive fails)
     if (!question) {
-      console.error('No question selected');
-      redirect('/app');
-    }
+      // First, get the user's recent attempts to avoid showing the same questions
+      const recentDays = 7;
+      const recentLimit = 10;
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - recentDays);
 
-    console.log(`Selected question: ${question.id} from pool of ${availableQuestions.length} questions (${allQuestions.length} total, ${recentQuestionIds.length} recent)`);
+      const { data: recentAttempts } = await supabase
+        .from('attempts')
+        .select('question_id')
+        .eq('user_id', supabaseUserId)
+        .eq('type_id', resolvedParams.type)
+        .gte('attempted_at', cutoffDate.toISOString())
+        .order('attempted_at', { ascending: false })
+        .limit(recentLimit);
+
+      const recentQuestionIds = recentAttempts?.map(a => a.question_id) || [];
+
+      // Fetch all questions of the given type
+      const { data: allQuestions, error: allQuestionsError } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('type', resolvedParams.type);
+
+      if (allQuestionsError || !allQuestions || allQuestions.length === 0) {
+        console.error('Error fetching questions:', allQuestionsError);
+        redirect('/app');
+      }
+
+      // Filter out recently shown questions if possible
+      let availableQuestions = allQuestions.filter(q => !recentQuestionIds.includes(q.id));
+
+      if (availableQuestions.length === 0) {
+        availableQuestions = allQuestions;
+      }
+
+      // Select a random question from available pool
+      const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+      question = availableQuestions[randomIndex];
+
+      if (!question) {
+        console.error('No question selected');
+        redirect('/app');
+      }
+
+      console.log(`Selected database question: ${question.id}`);
+    }
   }
 
   return (

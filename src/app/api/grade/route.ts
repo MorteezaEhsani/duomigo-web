@@ -4,6 +4,7 @@ import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { GetOrCreateUserParams } from '@/types/api';
+import { updateUserLevel, updatePromptUsageScore } from '@/lib/prompts/selector';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -504,6 +505,33 @@ export async function POST(request: NextRequest) {
 
         if (updateSessionError) {
           console.error('Error updating practice session end time:', updateSessionError);
+        }
+      }
+
+      // Update user's adaptive skill level for speaking exercises
+      const adaptiveTypes = ['listen_then_speak', 'read_then_speak'];
+      if (attempt.type_id && adaptiveTypes.includes(attempt.type_id)) {
+        try {
+          await updateUserLevel(
+            supabaseUserId,
+            'speaking',
+            attempt.type_id as 'listen_then_speak' | 'read_then_speak',
+            overall
+          );
+          console.log(`Updated user level for ${attempt.type_id} with score ${overall}`);
+
+          // Try to update prompt usage score - the question_id may be from generated_prompts
+          // This will succeed silently if it's an adaptive prompt, or do nothing if it's a regular question
+          if (attempt.question_id) {
+            try {
+              await updatePromptUsageScore(supabaseUserId, attempt.question_id, overall);
+            } catch {
+              // Ignore - question might be from questions table, not generated_prompts
+            }
+          }
+        } catch (levelError) {
+          console.error('Error updating user level:', levelError);
+          // Continue - don't fail the grading response
         }
       }
 

@@ -230,12 +230,118 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
     {
       id: 'listening',
       title: 'Listening',
-      practices: []
+      practices: [
+        {
+          type: 'listen_and_type',
+          title: 'Listen & Type',
+          description: 'Type the statement that you hear',
+          bgColor: '#DBEAFE',
+          iconColor: '#3B82F6',
+          iconPath: '/icons/listen-and-type.png',
+          fallbackIcon: (
+            <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+          )
+        },
+        {
+          type: 'listen_and_respond',
+          title: 'Listen & Respond',
+          description: 'Respond to conversation and summarize',
+          bgColor: '#EDE9FE',
+          iconColor: '#8B5CF6',
+          iconPath: '/icons/listen-and-respond.png',
+          fallbackIcon: (
+            <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+            </svg>
+          )
+        },
+        {
+          type: 'listen_and_complete',
+          title: 'Listen & Complete',
+          description: 'Fill in the missing words',
+          bgColor: '#D1FAE5',
+          iconColor: '#10B981',
+          iconPath: '/icons/listen-and-complete.png',
+          fallbackIcon: (
+            <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          )
+        },
+        {
+          type: 'listen_and_summarize',
+          title: 'Listen & Summarize',
+          description: 'Write a summary of what you heard',
+          bgColor: '#FEF3C7',
+          iconColor: '#F59E0B',
+          iconPath: '/icons/listen-and-summarize.png',
+          fallbackIcon: (
+            <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          )
+        }
+      ]
     },
     {
       id: 'reading',
       title: 'Reading',
-      practices: []
+      practices: [
+        {
+          type: 'read_and_select',
+          title: 'Read & Select',
+          description: 'Identify real words from fake ones',
+          bgColor: '#DBEAFE',
+          iconColor: '#3B82F6',
+          iconPath: '/icons/read-and-select.png',
+          fallbackIcon: (
+            <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )
+        },
+        {
+          type: 'fill_in_the_blanks',
+          title: 'Fill in the Blanks',
+          description: 'Complete sentences with missing words',
+          bgColor: '#FEF3C7',
+          iconColor: '#D97706',
+          iconPath: '/icons/fill-the-blank.png',
+          fallbackIcon: (
+            <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          )
+        },
+        {
+          type: 'read_and_complete',
+          title: 'Read & Complete',
+          description: 'Complete words in a paragraph',
+          bgColor: '#D1FAE5',
+          iconColor: '#10B981',
+          iconPath: '/icons/read-and-complete.png',
+          fallbackIcon: (
+            <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          )
+        },
+        {
+          type: 'interactive_reading',
+          title: 'Interactive Reading',
+          description: 'Academic passages with 6 question types',
+          bgColor: '#EDE9FE',
+          iconColor: '#7C3AED',
+          iconPath: '/icons/interactive-reading.png',
+          fallbackIcon: (
+            <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          )
+        }
+      ]
     }
   ];
 
@@ -290,10 +396,14 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                         iconColor={practice.iconColor}
                         onClick={() => {
                           if (section.id === 'speaking') {
-                            const path = practice.isCustom ? '/app/custom' : `/app/practice/${practice.type}`;
+                            const path = ('isCustom' in practice && practice.isCustom) ? '/app/custom' : `/app/practice/${practice.type}`;
                             router.push(path);
                           } else if (section.id === 'writing') {
                             router.push(`/app/writing/practice/${practice.type}`);
+                          } else if (section.id === 'listening') {
+                            router.push(`/app/listening/practice/${practice.type}`);
+                          } else if (section.id === 'reading') {
+                            router.push(`/app/reading/practice/${practice.type}`);
                           }
                         }}
                       />
