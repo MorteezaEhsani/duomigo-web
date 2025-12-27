@@ -2252,7 +2252,7 @@ export default function ReadingRunnerClient({
             const blanks = blanksInThisPart;
 
             // Split the text by blank markers and interleave with dropdowns
-            let segments: (string | { type: 'dropdown'; blankIdx: number; blank: typeof blanks[0] })[] = [];
+            const segments: (string | { type: 'dropdown'; blankIdx: number; blank: typeof blanks[0] })[] = [];
             let remainingText = part;
 
             blanks.forEach((blank) => {

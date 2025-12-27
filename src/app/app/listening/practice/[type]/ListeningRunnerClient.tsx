@@ -1609,7 +1609,7 @@ export default function ListeningRunnerClient({
                   {currentTurn.userSelection !== currentTurn.correctOption && (
                     <div className="mt-2 bg-green-100 rounded-2xl rounded-tr-none px-4 py-2 shadow-sm ml-auto border border-green-300">
                       <p className="text-xs text-green-800">
-                        Better response: "{currentTurn.options[currentTurn.correctOption]}"
+                        Better response: &quot;{currentTurn.options[currentTurn.correctOption]}&quot;
                       </p>
                     </div>
                   )}

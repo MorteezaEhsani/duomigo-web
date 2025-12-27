@@ -264,7 +264,7 @@ async function findAnyPrompt(
   const supabase = getAdminSupabaseClient();
 
   // First try exact level
-  let { data, error } = await (supabase.from as (table: string) => ReturnType<typeof supabase.from>)('generated_prompts')
+  const { data, error } = await (supabase.from as (table: string) => ReturnType<typeof supabase.from>)('generated_prompts')
     .select('*')
     .eq('skill_area', skillArea)
     .eq('question_type', questionType)
