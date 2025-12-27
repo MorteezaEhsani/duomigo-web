@@ -131,19 +131,37 @@ export default async function PracticeRunnerPage({ params, searchParams }: PageP
             promptText = promptData.discussionPrompt;
           }
 
-          question = {
-            id: result.prompt.id,
-            type: resolvedParams.type,
-            prompt: promptText,
-            image_url: null,
-            prep_seconds: 20,
-            min_seconds: 30,
-            max_seconds: 90,
-            target_language: 'en',
-            source_language: 'en'
-          };
+          // Insert the adaptive prompt into the questions table to satisfy FK constraint
+          // Use the generated_prompt ID as the question ID for consistency
+          const { data: insertedQuestion, error: insertError } = await supabase
+            .from('questions')
+            .upsert({
+              id: result.prompt.id,
+              type: resolvedParams.type,
+              prompt: promptText,
+              target_language: 'en',
+              source_language: 'en',
+              difficulty: 2,
+              prep_seconds: 20,
+              min_seconds: 30,
+              max_seconds: 90,
+              image_url: null,
+              metadata: {
+                generated_prompt_id: result.prompt.id,
+                cefr_level: result.userLevel,
+                source: result.source
+              }
+            }, { onConflict: 'id' })
+            .select()
+            .single();
 
-          console.log(`Selected adaptive prompt: ${result.prompt.id} (Level: ${result.userLevel}, Source: ${result.source})`);
+          if (insertError) {
+            console.error('Error inserting adaptive prompt into questions:', insertError);
+            // Fall through to database fallback
+          } else {
+            question = insertedQuestion;
+            console.log(`Selected adaptive prompt: ${result.prompt.id} (Level: ${result.userLevel}, Source: ${result.source})`);
+          }
         } else {
           // Fallback to database questions if no adaptive prompt available
           console.log('No adaptive prompt available, falling back to database');
