@@ -16,9 +16,9 @@ interface ClerkUser {
 
 interface Profile {
   user_id: string;
-  display_name: string;
-  email: string;
-  created_at: string;
+  display_name: string | null;
+  email: string | null;
+  created_at: string | null;
 }
 
 interface UserStats {
