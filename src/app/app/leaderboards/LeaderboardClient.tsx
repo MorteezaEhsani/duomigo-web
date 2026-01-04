@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface LeaderboardEntry {
   user_id: string;
@@ -155,12 +156,12 @@ export default function LeaderboardClient({
             <p className="text-gray-600 mb-4">
               Complete practice sessions to earn XP and appear on the leaderboard!
             </p>
-            <a
+            <Link
               href="/app/practice"
               className="inline-block px-6 py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors"
             >
               Start Practicing
-            </a>
+            </Link>
           </div>
         )}
 

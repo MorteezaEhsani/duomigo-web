@@ -236,7 +236,7 @@ export default function PracticeSessionClient({
               Session Complete!
             </h2>
             <p className="text-gray-600 mb-4">
-              You've completed all {questions.length} questions.
+              You&apos;ve completed all {questions.length} questions.
             </p>
             <Link
               href="/app/leaderboards"
