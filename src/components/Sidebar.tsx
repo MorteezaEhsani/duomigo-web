@@ -7,6 +7,8 @@ import { useUser } from '@clerk/nextjs';
 
 interface SidebarProps {
   isPremium?: boolean;
+  activeSection?: string;
+  onSectionClick?: (_sectionId: string) => void;
 }
 
 function getInitials(firstName?: string | null, lastName?: string | null, username?: string | null): string {
@@ -22,7 +24,7 @@ function getInitials(firstName?: string | null, lastName?: string | null, userna
   return 'U';
 }
 
-export default function Sidebar({ isPremium }: SidebarProps) {
+export default function Sidebar({ isPremium, activeSection: _activeSection, onSectionClick: _onSectionClick }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useUser();
 
