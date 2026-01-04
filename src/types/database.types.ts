@@ -530,6 +530,24 @@ export type Database = {
         }
         Returns: Json
       }
+      award_xp_for_attempt: {
+        Args: {
+          p_attempt_id: string
+        }
+        Returns: number
+      }
+      get_weekly_leaderboard: {
+        Args: {
+          p_limit?: number
+        }
+        Returns: Json
+      }
+      get_user_weekly_rank: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       subscription_status:
