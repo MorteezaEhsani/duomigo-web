@@ -477,6 +477,120 @@ export type Database = {
           },
         ]
       }
+      word_of_the_day: {
+        Row: {
+          id: string
+          user_id: string
+          word: string
+          part_of_speech: string
+          definition: string
+          example: string
+          pronunciation: string | null
+          date: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          word: string
+          part_of_speech: string
+          definition: string
+          example: string
+          pronunciation?: string | null
+          date: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          word?: string
+          part_of_speech?: string
+          definition?: string
+          example?: string
+          pronunciation?: string | null
+          date?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_of_the_day_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      user_levels: {
+        Row: {
+          id: string
+          user_id: string
+          skill_area: string
+          cefr_level: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          skill_area: string
+          cefr_level: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          skill_area?: string
+          cefr_level?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_levels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      xp_transactions: {
+        Row: {
+          id: string
+          user_id: string
+          attempt_id: string | null
+          xp_amount: number
+          reason: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          attempt_id?: string | null
+          xp_amount: number
+          reason: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          attempt_id?: string | null
+          xp_amount?: number
+          reason?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xp_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
