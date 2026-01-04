@@ -164,7 +164,8 @@ export default async function PracticeSessionPage() {
     if (selectedQuestion) {
       questions.push({
         ...selectedQuestion,
-        skill_type: skillType
+        skill_type: skillType,
+        metadata: selectedQuestion.metadata as Record<string, unknown> | null
       });
     }
   }
