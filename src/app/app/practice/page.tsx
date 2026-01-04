@@ -89,7 +89,7 @@ export default async function PracticeSessionPage() {
       console.error('Error details:', weakSkillsError.message, weakSkillsError.code, weakSkillsError.details);
       // Fall back to all skill types (already set)
     } else {
-      const skillTypes = (weakSkills as WeakSkillType[] || []).map(s => s.skill_type);
+      const skillTypes = (weakSkills as unknown as WeakSkillType[] || []).map(s => s.skill_type);
       if (skillTypes.length > 0) {
         targetSkills = skillTypes;
       }
