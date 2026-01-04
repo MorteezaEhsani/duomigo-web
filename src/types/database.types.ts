@@ -662,6 +662,13 @@ export type Database = {
         }
         Returns: Json
       }
+      get_weak_skill_types: {
+        Args: {
+          p_user_id: string
+          p_limit?: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       subscription_status:
