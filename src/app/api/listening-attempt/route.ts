@@ -100,10 +100,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Award XP for this attempt
+    let xpAwarded = 0;
+    try {
+      const { data: xpResult, error: xpError } = await supabase.rpc('award_xp_for_attempt', {
+        p_attempt_id: attemptId
+      });
+
+      if (xpError) {
+        console.error('Error awarding XP:', xpError);
+      } else {
+        xpAwarded = xpResult || 0;
+      }
+    } catch (xpErr) {
+      console.error('Exception awarding XP:', xpErr);
+    }
+
     return NextResponse.json({
       success: true,
       attemptId,
-      userId: supabaseUserId
+      userId: supabaseUserId,
+      xpAwarded
     });
 
   } catch (error) {

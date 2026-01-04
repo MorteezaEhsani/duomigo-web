@@ -51,8 +51,9 @@ export function getDayStatus(
 }
 
 export function getDayNumber(dateStr: string): string {
-  const date = new Date(dateStr);
-  return String(date.getDate());
+  // Parse the YYYY-MM-DD string directly to avoid timezone issues
+  const parts = dateStr.split('-');
+  return String(parseInt(parts[2], 10));
 }
 
 export function getWeekdayInitials(): string[] {

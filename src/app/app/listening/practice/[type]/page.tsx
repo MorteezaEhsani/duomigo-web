@@ -4,6 +4,8 @@ import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import ListeningRunnerClient from './ListeningRunnerClient';
 import { selectPromptForUser } from '@/lib/prompts/selector';
 import { ListenAndTypePrompt, ListenAndRespondPrompt, ListenAndCompletePrompt, ListenAndSummarizePrompt } from '@/lib/prompts/types';
+import { FREE_TIER_LIFETIME_LIMIT } from '@/lib/subscription/constants';
+import type { UsageCheckResult } from '@/types/subscription.types';
 
 const VALID_LISTENING_TYPES = [
   'listen_and_type',
@@ -50,6 +52,27 @@ export default async function ListeningPracticePage({ params }: PageProps) {
   if (userError || !supabaseUserId) {
     console.error('Error getting/creating user:', userError);
     redirect('/app/listening');
+  }
+
+  // Check if user has access (premium or free tier limit not reached)
+  const { data: usageCheck, error: usageError } = await supabase.rpc(
+    'check_and_increment_free_usage',
+    {
+      p_user_id: supabaseUserId,
+      p_lifetime_limit: FREE_TIER_LIFETIME_LIMIT,
+    }
+  );
+
+  if (usageError) {
+    console.error('Error checking usage:', usageError);
+    redirect('/app');
+  }
+
+  const usage = usageCheck as unknown as UsageCheckResult;
+
+  // If not allowed (limit reached and not premium), redirect to upgrade
+  if (!usage.allowed) {
+    redirect('/app?upgrade=required');
   }
 
   // Create a temporary session

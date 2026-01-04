@@ -1466,11 +1466,29 @@ export default function ReadingRunnerClient({
       }
 
       try {
+        // Handle temporary session IDs by creating a real session first
+        const isTemporarySession = sessionId.startsWith('temp_');
+        let actualSessionId = sessionId;
+
+        if (isTemporarySession) {
+          const sessionResponse = await fetch('/api/practice-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          if (!sessionResponse.ok) {
+            throw new Error('Failed to create practice session');
+          }
+
+          const { sessionId: newSessionId } = await sessionResponse.json();
+          actualSessionId = newSessionId;
+        }
+
         await fetch('/api/reading-attempt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            sessionId,
+            sessionId: actualSessionId,
             questionId: promptId,
             questionType: readingType,
             score,

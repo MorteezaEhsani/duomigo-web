@@ -202,35 +202,51 @@ export async function GET() {
     startMonday.setDate(startMonday.getDate() - 11 * 7); // Go back 11 weeks
     startMonday.setHours(0, 0, 0, 0);
 
-    // Get total questions count
-    const { count: totalQuestions, error: countError } = await supabase
-      .from('practice_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', supabaseUserId);
+    // Get total questions count (using attempts table which tracks completed practices)
+    let totalQuestions = 0;
+    try {
+      const { count, error: countError } = await supabase
+        .from('attempts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', supabaseUserId);
 
-    if (countError) {
-      console.error('Error fetching total questions:', countError);
-      return NextResponse.json({ error: 'Failed to fetch progress' }, { status: 500 });
+      if (countError) {
+        console.error('Error fetching total questions:', countError);
+        // Don't fail - just use 0
+      } else {
+        totalQuestions = count || 0;
+      }
+    } catch (err) {
+      console.error('Exception fetching total questions:', err);
     }
 
-    // Get daily counts for the date range
-    const { data: sessions, error: sessionsError } = await supabase
-      .from('practice_sessions')
-      .select('started_at')
-      .eq('user_id', supabaseUserId)
-      .gte('started_at', startMonday.toISOString())
-      .lte('started_at', currentSunday.toISOString());
+    // Get daily counts for the date range (using attempts table)
+    let attempts: Array<{ attempted_at: string | null }> | null = null;
+    try {
+      const { data, error: attemptsError } = await supabase
+        .from('attempts')
+        .select('attempted_at')
+        .eq('user_id', supabaseUserId)
+        .gte('attempted_at', startMonday.toISOString())
+        .lte('attempted_at', currentSunday.toISOString());
 
-    if (sessionsError) {
-      console.error('Error fetching sessions:', sessionsError);
-      return NextResponse.json({ error: 'Failed to fetch sessions' }, { status: 500 });
+      if (attemptsError) {
+        console.error('Error fetching attempts:', attemptsError);
+        // Don't fail - just use empty array
+        attempts = [];
+      } else {
+        attempts = data;
+      }
+    } catch (err) {
+      console.error('Exception fetching attempts:', err);
+      attempts = [];
     }
 
     // Count completions per day
     const dailyCounts = new Map<string, number>();
-    sessions?.forEach((session) => {
-      if (!session.started_at) return;
-      const date = new Date(session.started_at);
+    attempts?.forEach((attempt) => {
+      if (!attempt.attempted_at) return;
+      const date = new Date(attempt.attempted_at);
       const dateKey = formatDate(date);
       dailyCounts.set(dateKey, (dailyCounts.get(dateKey) || 0) + 1);
     });
@@ -256,7 +272,7 @@ export async function GET() {
 
     const response: ProgressResponse = {
       days,
-      totalQuestions: totalQuestions || 0,
+      totalQuestions,
       currentStreakWeeks: weekStreaks.current,
       bestStreakDays: dailyStreaks.best,
       currentStreakDays: dailyStreaks.current

@@ -1,128 +1,84 @@
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { createServerSupabase } from '@/lib/supabase/server';
-import SessionGuard from '@/components/SessionGuard';
-import SignOutButton from '@/components/SignOutButton';
-import ProfileEditForm from './ProfileEditForm';
+import { getAdminSupabaseClient } from '@/lib/supabase/admin';
+import ProfileClient from './ProfileClient';
 
-async function getOrCreateProfile(userId: string) {
-  const supabase = await createServerSupabase();
-  
-  // Try to get existing profile
-  const result = await supabase
+interface UserStats {
+  totalXp: number;
+  weeklyXp: number;
+  practicesCompleted: number;
+}
+
+async function getProfileData(clerkUserId: string) {
+  const supabase = getAdminSupabaseClient();
+
+  // Get user's Supabase profile
+  const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('user_id', userId)
+    .eq('clerk_user_id', clerkUserId)
     .single();
 
-  let profile = result.data;
-  const error = result.error;
-
-  // If no profile exists, create one
-  if (!profile || error?.code === 'PGRST116') {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const { data: newProfile, error: insertError } = await supabase
-      .from('profiles')
-      .upsert({
-        user_id: userId,
-        display_name: user?.email?.split('@')[0] || 'User',
-        email: user?.email,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('Error creating profile:', insertError);
-      return null;
-    }
-
-    profile = newProfile;
+  if (!profile) {
+    return { profile: null, stats: null, isPremium: false };
   }
 
-  return profile;
+  // Get total XP
+  const { data: totalXpData } = await supabase.rpc('get_user_total_xp', {
+    p_user_id: profile.user_id
+  });
+
+  // Get weekly rank data
+  const { data: weeklyRankData } = await supabase.rpc('get_user_weekly_rank', {
+    p_user_id: profile.user_id
+  });
+
+  // Get total practices completed
+  const { count: practicesCount } = await supabase
+    .from('attempts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', profile.user_id);
+
+  // Check premium status
+  const { data: isPremiumData } = await supabase.rpc('has_premium_access', {
+    p_user_id: profile.user_id
+  });
+
+  const stats: UserStats = {
+    totalXp: totalXpData || 0,
+    weeklyXp: weeklyRankData?.[0]?.xp_earned || 0,
+    practicesCompleted: practicesCount || 0
+  };
+
+  return {
+    profile,
+    stats,
+    isPremium: isPremiumData === true
+  };
 }
 
 export default async function ProfilePage() {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    redirect('/login');
+  const { userId } = await auth();
+  const user = await currentUser();
+
+  if (!userId || !user) {
+    redirect('/sign-in');
   }
 
-  const profile = await getOrCreateProfile(user.id);
+  const { profile, stats, isPremium } = await getProfileData(userId);
 
   return (
-    <SessionGuard>
-      <div className="min-h-screen bg-zinc-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto">
-          <div className="bg-white shadow-sm rounded-lg">
-            <div className="px-6 py-4 border-b border-zinc-200">
-              <h1 className="text-2xl font-semibold text-zinc-900">Profile</h1>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              <div>
-                <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider">Account Information</h2>
-                <div className="mt-3 space-y-3">
-                  <div>
-                    <p className="text-sm font-medium text-zinc-700">User ID</p>
-                    <p className="mt-1 text-sm text-zinc-900 font-mono bg-zinc-50 px-3 py-2 rounded-md">
-                      {user.id}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm font-medium text-zinc-700">Email</p>
-                    <p className="mt-1 text-sm text-zinc-900">
-                      {user.email}
-                    </p>
-                  </div>
-                  
-                  {profile && (
-                    <>
-                      <div>
-                        <p className="text-sm font-medium text-zinc-700">Display Name</p>
-                        <p className="mt-1 text-sm text-zinc-900">
-                          {profile.display_name || 'Not set'}
-                        </p>
-                      </div>
-                      
-                      {profile.created_at && (
-                        <div>
-                          <p className="text-sm font-medium text-zinc-700">Member Since</p>
-                          <p className="mt-1 text-sm text-zinc-900">
-                            {new Date(profile.created_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="border-t border-zinc-200 pt-6">
-                <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-4">Edit Profile</h2>
-                <ProfileEditForm 
-                  userId={user.id} 
-                  currentDisplayName={profile?.display_name || ''} 
-                />
-              </div>
-
-              <div className="border-t border-zinc-200 pt-6">
-                <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-4">Account Actions</h2>
-                <SignOutButton />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </SessionGuard>
+    <ProfileClient
+      clerkUser={{
+        id: userId,
+        email: user.emailAddresses[0]?.emailAddress || '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        imageUrl: user.imageUrl
+      }}
+      profile={profile}
+      stats={stats}
+      isPremium={isPremium}
+    />
   );
 }

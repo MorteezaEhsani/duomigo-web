@@ -535,6 +535,22 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Award XP for the completed attempt
+      try {
+        const { data: xpEarned, error: xpError } = await supabase.rpc('award_xp_for_attempt', {
+          p_attempt_id: attemptId
+        });
+
+        if (xpError) {
+          console.error('Error awarding XP:', xpError);
+        } else {
+          console.log(`Awarded ${xpEarned} XP for attempt ${attemptId}`);
+        }
+      } catch (xpError) {
+        console.error('Error awarding XP:', xpError);
+        // Continue - don't fail the grading response
+      }
+
       // 6. Respond to client with all rubric data
       return NextResponse.json({
         ok: true,

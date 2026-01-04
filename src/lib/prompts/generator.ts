@@ -385,10 +385,47 @@ Requirements:
 // LISTENING GENERATORS
 // =====================================================
 
+// Diverse topics for Listen & Type to ensure variety
+const LISTEN_AND_TYPE_TOPICS = [
+  'ordering food at a restaurant',
+  'asking for directions on the street',
+  'making a doctor appointment',
+  'discussing a movie or book',
+  'talking about hobbies and interests',
+  'describing your job or studies',
+  'planning a vacation or trip',
+  'shopping for clothes or groceries',
+  'discussing technology and gadgets',
+  'talking about sports and exercise',
+  'describing your family members',
+  'discussing music and concerts',
+  'making plans with friends',
+  'talking about the news',
+  'describing your home or apartment',
+  'discussing cooking and recipes',
+  'talking about pets and animals',
+  'describing a memorable experience',
+  'discussing health and wellness',
+  'talking about transportation',
+  'describing your daily commute',
+  'discussing environmental issues',
+  'talking about art and museums',
+  'making a hotel reservation',
+  'discussing education and learning',
+  'talking about celebrations and holidays',
+  'describing the seasons',
+  'discussing work-life balance',
+  'talking about social media',
+  'describing a city or country you visited',
+];
+
 async function generateListenAndType(
   cefrLevel: CEFRLevel,
   characteristics: typeof CEFR_CHARACTERISTICS[CEFRLevel]
 ): Promise<ListenAndTypePrompt> {
+  // Randomly select a topic to ensure diversity
+  const randomTopic = LISTEN_AND_TYPE_TOPICS[Math.floor(Math.random() * LISTEN_AND_TYPE_TOPICS.length)];
+
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     response_format: { type: 'json_object' },
@@ -402,6 +439,8 @@ CEFR ${cefrLevel} Characteristics:
 - Grammar: ${characteristics.grammarStructures}
 - Sentence length: ${characteristics.sentenceLength}
 
+IMPORTANT: The sentence MUST be about "${randomTopic}". Be creative and specific to this topic.
+
 Return ONLY valid JSON with this exact structure:
 {
   "audioScript": "A single sentence that will be spoken aloud for the learner to type",
@@ -410,13 +449,15 @@ Return ONLY valid JSON with this exact structure:
 }
 
 Requirements:
-- audioScript should be exactly 1 sentence at the appropriate level
+- audioScript should be exactly 1 sentence at the appropriate level about "${randomTopic}"
+- Be creative and avoid generic sentences - make the sentence interesting and specific
+- DO NOT use cliché phrases like "the weather is nice", "going to the park", "visiting friends on the weekend"
 - Keep it natural and conversational
-- hints are optional clues (like "This is about weather")
+- hints are optional clues about the topic
 - acceptableVariations are alternative correct answers (e.g., contractions)`
       }
     ],
-    temperature: 0.9,
+    temperature: 0.95,
     max_tokens: 300,
   });
 

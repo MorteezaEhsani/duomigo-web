@@ -7,9 +7,24 @@ const isProtectedRoute = createRouteMatcher([
   '/api/storage(.*)',
   '/api/attempts(.*)',
   '/api/activity(.*)',
+  // Stripe routes (except webhook)
+  '/api/stripe/create-checkout(.*)',
+  '/api/stripe/create-portal(.*)',
+  // Subscription routes
+  '/api/subscription(.*)',
+]);
+
+// Webhook routes should NOT be protected (Stripe needs to call them directly)
+const isWebhookRoute = createRouteMatcher([
+  '/api/stripe/webhook(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+  // Skip auth for webhook routes - Stripe needs to call these directly
+  if (isWebhookRoute(req)) {
+    return;
+  }
+
   if (isProtectedRoute(req)) {
     await auth.protect();
   }

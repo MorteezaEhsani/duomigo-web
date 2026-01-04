@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { supabase } from '@/lib/supabase/client';
 import { DashboardSkeleton } from '@/components/LoadingSkeleton';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import StreakPanel from '@/components/Progress/StreakPanel';
 import PracticeCard from '@/components/PracticeCard';
-import Sidebar from '@/components/Sidebar';
-
+import { usePremium } from '@/hooks/usePremium';
+import UpgradeModal from '@/components/UpgradeModal';
+import WordOfTheDay from '@/components/WordOfTheDay';
 interface DashboardClientProps {
   userId: string;
 }
@@ -17,11 +18,65 @@ interface DashboardClientProps {
 export default function DashboardClient({ userId }: DashboardClientProps) {
   const { user } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const { isPremium, freeUsage, refetch: refetchPremium } = usePremium();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState('speaking');
-  const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Check for upgrade required or subscription success/canceled query params
+  useEffect(() => {
+    const upgrade = searchParams.get('upgrade');
+    const subscription = searchParams.get('subscription');
+
+    if (upgrade === 'required') {
+      setShowUpgradeModal(true);
+      // Remove query param from URL without refresh
+      router.replace('/app', { scroll: false });
+    }
+
+    if (subscription === 'success') {
+      toast.success('Welcome to Duomigo Premium! Enjoy unlimited practice.');
+      refetchPremium();
+      router.replace('/app', { scroll: false });
+    } else if (subscription === 'canceled') {
+      toast.info('Subscription checkout was canceled.');
+      router.replace('/app', { scroll: false });
+    }
+  }, [searchParams, router, refetchPremium]);
+
+  // Refetch premium status when pathname changes to /app (returning from practice)
+  // or when window gains focus (returning from Stripe checkout in new tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        refetchPremium();
+      }
+    };
+
+    // Also refetch on visibility change (tab becomes visible)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        refetchPremium();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, refetchPremium]);
+
+  // Refetch when navigating back to dashboard (pathname changes to /app)
+  useEffect(() => {
+    if (pathname === '/app' && user) {
+      refetchPremium();
+    }
+  }, [pathname, user, refetchPremium]);
 
   const initializeUser = async () => {
     try {
@@ -56,35 +111,6 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
       initializeUser();
     }
   }, [user, userId]);
-
-  // Handle scroll events
-  const handleScroll = () => {
-    const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer) return;
-
-    const scrollPosition = scrollContainer.scrollTop + 200; // Offset for header
-    console.log('SCROLLING! Scroll position:', scrollPosition);
-
-    // Find which section is currently in view
-    let currentSection = 'speaking'; // Default to first section
-
-    Object.entries(sectionRefs.current).forEach(([id, element]) => {
-      if (element) {
-        const offsetTop = element.offsetTop;
-        if (scrollPosition >= offsetTop) {
-          currentSection = id;
-        }
-      }
-    });
-
-    console.log('Setting active section to:', currentSection);
-    setActiveSection(currentSection);
-  };
-
-  // Initial scroll check after mount
-  useEffect(() => {
-    handleScroll();
-  }, []);
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -345,29 +371,42 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
     }
   ];
 
-  const scrollToSection = (sectionId: string) => {
-    const scrollContainer = scrollContainerRef.current;
-    const element = sectionRefs.current[sectionId];
-
-    if (scrollContainer && element) {
-      const offsetTop = element.offsetTop - 100; // Account for header/padding
-      scrollContainer.scrollTo({
-        top: offsetTop,
-        behavior: 'smooth'
-      });
-    }
-  };
-
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar activeSection={activeSection} onSectionClick={scrollToSection} />
+    <>
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        remaining={freeUsage?.remaining || 0}
+      />
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Scrollable practice sections */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-20 lg:pb-0" onScroll={handleScroll}>
-          {/* Streak Panel - Mobile only */}
-          <div className="lg:hidden px-4 pt-4 pb-2">
+        <div className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+          {/* Premium Status Card - Mobile only */}
+          <div className="lg:hidden px-4 pt-4 pb-2 space-y-3">
+            {isPremium ? (
+              <WordOfTheDay />
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                <h3 className="text-base font-bold text-gray-900 mb-1">Subscribe to Premium</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Unlock your full potential. Get unlimited access, daily vocabulary, and personalized AI coaching designed just for you.
+                </p>
+                {freeUsage && (
+                  <p className="text-xs text-gray-500 mb-3">
+                    You have {freeUsage.remaining} free practice{freeUsage.remaining !== 1 ? 's' : ''} left.
+                  </p>
+                )}
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="w-1/3 py-2.5 px-4 bg-orange-400 hover:bg-orange-500 text-white text-sm font-semibold rounded-full transition-colors"
+                >
+                  Subscribe
+                </button>
+              </div>
+            )}
             <StreakPanel />
           </div>
 
@@ -376,9 +415,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
             {skillSections.map((section) => (
               <div
                 key={section.id}
-                ref={(el) => { sectionRefs.current[section.id] = el; }}
-                data-section-id={section.id}
-                className="mb-8 lg:mb-12 scroll-mt-32"
+                className="mb-8 lg:mb-12"
               >
                 <h2 className="text-lg lg:text-xl font-bold text-gray-900 mb-4">
                   {section.title} Practice
@@ -421,11 +458,34 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
 
         {/* Right sidebar - Desktop only */}
         <div className="hidden lg:block w-[28rem] border-l border-gray-200 bg-white overflow-y-auto">
-          <div className="sticky top-0 p-6">
+          <div className="sticky top-0 p-6 space-y-4">
+            {/* Premium Status Card */}
+            {isPremium ? (
+              <WordOfTheDay />
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                <h3 className="text-base font-bold text-gray-900 mb-1">Subscribe to Premium</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Unlock your full potential. Get unlimited access, daily vocabulary, and personalized AI coaching designed just for you.
+                </p>
+                {freeUsage && (
+                  <p className="text-xs text-gray-500 mb-3">
+                    You have {freeUsage.remaining} free practice{freeUsage.remaining !== 1 ? 's' : ''} left.
+                  </p>
+                )}
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="w-1/3 py-2.5 px-4 bg-orange-400 hover:bg-orange-500 text-white text-sm font-semibold rounded-full transition-colors"
+                >
+                  Subscribe
+                </button>
+              </div>
+            )}
+
             <StreakPanel />
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

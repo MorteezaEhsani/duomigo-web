@@ -368,6 +368,115 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          price_id: string | null
+          current_period_start: string | null
+          current_period_end: string | null
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          price_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          price_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      stripe_events: {
+        Row: {
+          id: string
+          stripe_event_id: string
+          event_type: string
+          processed_at: string
+          payload: Json | null
+        }
+        Insert: {
+          id?: string
+          stripe_event_id: string
+          event_type: string
+          processed_at?: string
+          payload?: Json | null
+        }
+        Update: {
+          id?: string
+          stripe_event_id?: string
+          event_type?: string
+          processed_at?: string
+          payload?: Json | null
+        }
+        Relationships: []
+      }
+      free_tier_usage: {
+        Row: {
+          id: string
+          user_id: string
+          practice_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          practice_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          practice_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "free_tier_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -402,8 +511,35 @@ export type Database = {
         }
         Returns: undefined
       }
+      has_premium_access: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      check_and_increment_free_usage: {
+        Args: {
+          p_user_id: string
+          p_lifetime_limit?: number
+        }
+        Returns: Json
+      }
+      get_free_tier_usage: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
+      subscription_status:
+        | "active"
+        | "canceled"
+        | "past_due"
+        | "unpaid"
+        | "trialing"
+        | "incomplete"
+        | "incomplete_expired"
       prompt_type:
         | "listenThenSpeak"
         | "readThenSpeak"

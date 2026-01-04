@@ -300,7 +300,23 @@ async function findAnyPrompt(
 // =====================================================
 
 /**
+ * Convert CEFR level to numeric difficulty (1-6)
+ */
+function cefrLevelToNumber(level: CEFRLevel): number {
+  const map: Record<CEFRLevel, number> = {
+    'A1': 1,
+    'A2': 2,
+    'B1': 3,
+    'B2': 4,
+    'C1': 5,
+    'C2': 6,
+  };
+  return map[level] || 2;
+}
+
+/**
  * Store a newly generated prompt in the cache
+ * Also inserts into 'questions' table to satisfy FK constraint from 'attempts' table
  */
 async function storeGeneratedPrompt(
   skillArea: SkillArea,
@@ -310,8 +326,58 @@ async function storeGeneratedPrompt(
 ): Promise<GeneratedPrompt | null> {
   const supabase = getAdminSupabaseClient();
 
+  // Generate a UUID that will be shared between generated_prompts and questions tables
+  const promptId = crypto.randomUUID();
+
+  // Extract a prompt text from the prompt data for the questions table
+  let promptText = '';
+  if ('audioScript' in promptData) {
+    promptText = promptData.audioScript;
+  } else if ('topic' in promptData) {
+    promptText = promptData.topic;
+  } else if ('step1Prompt' in promptData) {
+    promptText = promptData.step1Prompt;
+  } else if ('passage' in promptData && typeof promptData.passage === 'string') {
+    promptText = promptData.passage;
+  } else if ('words' in promptData) {
+    promptText = `Word recognition exercise with ${promptData.words.length} words`;
+  } else if ('sentence' in promptData && typeof promptData.sentence === 'string') {
+    promptText = promptData.sentence;
+  } else if ('conversationTurns' in promptData && promptData.conversationTurns.length > 0) {
+    promptText = promptData.conversationTurns[0].prompt;
+  } else {
+    promptText = `${skillArea} ${questionType} exercise`;
+  }
+
+  // First, insert into questions table to satisfy FK constraint
+  const { error: questionsError } = await supabase
+    .from('questions')
+    .insert({
+      id: promptId,
+      type: questionType,
+      prompt: promptText,
+      source_language: 'en',
+      target_language: 'en',
+      prep_seconds: 0,
+      min_seconds: 0,
+      max_seconds: 300,
+      difficulty: cefrLevelToNumber(cefrLevel),
+      metadata: {
+        skillArea,
+        cefrLevel,
+        isAdaptive: true,
+      },
+    });
+
+  if (questionsError) {
+    console.error('Error inserting into questions table:', questionsError);
+    return null;
+  }
+
+  // Then insert into generated_prompts with the same ID
   const { data, error } = await (supabase.from as (table: string) => ReturnType<typeof supabase.from>)('generated_prompts')
     .insert({
+      id: promptId,
       skill_area: skillArea,
       question_type: questionType,
       cefr_level: cefrLevel,
@@ -328,6 +394,8 @@ async function storeGeneratedPrompt(
 
   if (error) {
     console.error('Error storing generated prompt:', error);
+    // Clean up the questions entry if generated_prompts insert fails
+    await supabase.from('questions').delete().eq('id', promptId);
     return null;
   }
 

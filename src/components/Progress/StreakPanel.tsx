@@ -32,7 +32,9 @@ export default function StreakPanel() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/progress');
+      const response = await fetch('/api/progress', {
+        credentials: 'include'
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -95,19 +97,20 @@ export default function StreakPanel() {
   // Get date range for current week view
   const getWeekDateRange = (dates: string[]): string => {
     if (dates.length === 0) return '';
-    const firstDate = new Date(dates[0]);
-    const lastDate = new Date(dates[dates.length - 1]);
-    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    // Parse dates directly from YYYY-MM-DD strings to avoid timezone issues
+    const [, firstMonth, firstDay] = dates[0].split('-').map(Number);
+    const [, lastMonth, lastDay] = dates[dates.length - 1].split('-').map(Number);
 
-    const firstFormatted = firstDate.toLocaleDateString('en-US', options);
-    const lastFormatted = lastDate.toLocaleDateString('en-US', options);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const firstMonthName = monthNames[firstMonth - 1];
+    const lastMonthName = monthNames[lastMonth - 1];
 
-    // If same month, show as "Nov 18 - 24"
-    if (firstDate.getMonth() === lastDate.getMonth()) {
-      return `${firstFormatted} - ${lastDate.getDate()}`;
+    // If same month, show as "Jan 29 - 4" -> should be "Dec 29 - Jan 4" for cross-month
+    if (firstMonth === lastMonth) {
+      return `${firstMonthName} ${firstDay} - ${lastDay}`;
     }
-    // If different months, show as "Nov 28 - Dec 4"
-    return `${firstFormatted} - ${lastFormatted}`;
+    // If different months, show as "Dec 29 - Jan 4"
+    return `${firstMonthName} ${firstDay} - ${lastMonthName} ${lastDay}`;
   };
 
   return (
