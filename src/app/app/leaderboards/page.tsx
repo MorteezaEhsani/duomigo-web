@@ -54,7 +54,7 @@ async function getLeaderboardData(clerkUserId: string) {
   }
 
   // userRankData is returned as Json, need to handle it properly
-  const userRank = (Array.isArray(userRankData) ? userRankData[0] : userRankData) as UserRank | undefined;
+  const userRank = (Array.isArray(userRankData) ? userRankData[0] : userRankData) as unknown as UserRank | undefined;
 
   return {
     leaderboard: (leaderboard || []) as LeaderboardEntry[],
