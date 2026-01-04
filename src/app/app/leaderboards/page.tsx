@@ -53,7 +53,8 @@ async function getLeaderboardData(clerkUserId: string) {
     console.error('Error fetching user rank:', userRankError);
   }
 
-  const userRank = userRankData?.[0] as UserRank | undefined;
+  // userRankData is returned as Json, need to handle it properly
+  const userRank = (Array.isArray(userRankData) ? userRankData[0] : userRankData) as UserRank | undefined;
 
   return {
     leaderboard: (leaderboard || []) as LeaderboardEntry[],
