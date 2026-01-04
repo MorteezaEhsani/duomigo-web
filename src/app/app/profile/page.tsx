@@ -46,7 +46,7 @@ async function getProfileData(clerkUserId: string) {
 
   const stats: UserStats = {
     totalXp: totalXpData || 0,
-    weeklyXp: weeklyRankData?.[0]?.xp_earned || 0,
+    weeklyXp: (Array.isArray(weeklyRankData) ? (weeklyRankData[0] as { xp_earned?: number })?.xp_earned : 0) || 0,
     practicesCompleted: practicesCount || 0
   };
 
