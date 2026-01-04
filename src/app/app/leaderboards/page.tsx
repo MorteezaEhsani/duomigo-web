@@ -57,7 +57,7 @@ async function getLeaderboardData(clerkUserId: string) {
   const userRank = (Array.isArray(userRankData) ? userRankData[0] : userRankData) as unknown as UserRank | undefined;
 
   return {
-    leaderboard: (leaderboard || []) as LeaderboardEntry[],
+    leaderboard: (leaderboard || []) as unknown as LeaderboardEntry[],
     userRank: userRank || null,
     currentUserId: profile.user_id,
     currentUserProfile: {
