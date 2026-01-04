@@ -22,7 +22,12 @@ export async function POST(request: NextRequest) {
 
     // Validate Stripe configuration
     if (!SERVER_ENV.STRIPE_SECRET_KEY || !SERVER_ENV.STRIPE_PRICE_ID) {
-      console.error('Stripe not configured');
+      console.error('Stripe not configured:', {
+        hasSecretKey: !!SERVER_ENV.STRIPE_SECRET_KEY,
+        hasPriceId: !!SERVER_ENV.STRIPE_PRICE_ID,
+        secretKeyPrefix: SERVER_ENV.STRIPE_SECRET_KEY?.substring(0, 8),
+        priceIdPrefix: SERVER_ENV.STRIPE_PRICE_ID?.substring(0, 10),
+      });
       return NextResponse.json(
         { error: 'Payment system not configured' },
         { status: 500 }
