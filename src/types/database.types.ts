@@ -669,6 +669,12 @@ export type Database = {
         }
         Returns: Json
       }
+      get_user_total_xp: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       subscription_status:
