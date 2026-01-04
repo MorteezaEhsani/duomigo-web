@@ -16,14 +16,21 @@ export default function UpgradeModal({
 }: UpgradeModalProps) {
   const { createCheckout } = usePremium();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleUpgrade = async () => {
     setLoading(true);
+    setError(null);
     try {
       const url = await createCheckout();
       if (url) {
         window.location.href = url;
+      } else {
+        setError('Failed to start checkout. Please try again.');
       }
+    } catch (err) {
+      console.error('Upgrade error:', err);
+      setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -136,6 +143,13 @@ export default function UpgradeModal({
               </li>
             </ul>
           </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="flex gap-3">

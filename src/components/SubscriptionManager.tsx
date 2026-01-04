@@ -17,14 +17,21 @@ export default function SubscriptionManager() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleUpgrade = async () => {
     setLoading(true);
+    setError(null);
     try {
       const url = await createCheckout();
       if (url) {
         window.location.href = url;
+      } else {
+        setError('Failed to start checkout. Please try again.');
       }
+    } catch (err) {
+      console.error('Upgrade error:', err);
+      setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -177,6 +184,12 @@ export default function SubscriptionManager() {
               <li>Detailed AI feedback</li>
             </ul>
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
 
           <button
             onClick={handleUpgrade}
