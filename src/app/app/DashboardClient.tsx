@@ -37,8 +37,27 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
     }
 
     if (subscription === 'success') {
+      // Try to sync subscription from Stripe (in case webhook didn't fire)
+      const syncSubscription = async () => {
+        try {
+          const response = await fetch('/api/stripe/sync-subscription', {
+            method: 'POST',
+          });
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Subscription synced:', data);
+          } else {
+            console.log('Sync response:', await response.json());
+          }
+        } catch (err) {
+          console.error('Failed to sync subscription:', err);
+        }
+        // Always refetch premium status after sync attempt
+        await refetchPremium();
+      };
+
+      syncSubscription();
       toast.success('Welcome to Duomigo Premium! Enjoy unlimited practice.');
-      refetchPremium();
       router.replace('/app', { scroll: false });
     } else if (subscription === 'canceled') {
       toast.info('Subscription checkout was canceled.');
