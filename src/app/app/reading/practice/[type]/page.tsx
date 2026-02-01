@@ -4,8 +4,8 @@ import { getAdminSupabaseClient } from '@/lib/supabase/admin';
 import ReadingRunnerClient from './ReadingRunnerClient';
 import { selectPromptForUser } from '@/lib/prompts/selector';
 import { ReadAndSelectPrompt, FillInTheBlanksPrompt, ReadAndCompletePrompt, InteractiveReadingPrompt } from '@/lib/prompts/types';
-import { FREE_TIER_LIFETIME_LIMIT } from '@/lib/subscription/constants';
-import type { UsageCheckResult } from '@/types/subscription.types';
+// import { FREE_TIER_LIFETIME_LIMIT } from '@/lib/subscription/constants';
+// import type { UsageCheckResult } from '@/types/subscription.types';
 
 const VALID_READING_TYPES = [
   'read_and_select',
@@ -56,26 +56,27 @@ export default async function ReadingPracticePage({ params }: PageProps) {
     redirect('/app/reading');
   }
 
+  // PREMIUM FEATURE DISABLED - Unlimited access for all users
   // Check if user has access (premium or free tier limit not reached)
-  const { data: usageCheck, error: usageError } = await supabase.rpc(
-    'check_and_increment_free_usage',
-    {
-      p_user_id: supabaseUserId,
-      p_lifetime_limit: FREE_TIER_LIFETIME_LIMIT,
-    }
-  );
+  // const { data: usageCheck, error: usageError } = await supabase.rpc(
+  //   'check_and_increment_free_usage',
+  //   {
+  //     p_user_id: supabaseUserId,
+  //     p_lifetime_limit: FREE_TIER_LIFETIME_LIMIT,
+  //   }
+  // );
 
-  if (usageError) {
-    console.error('Error checking usage:', usageError);
-    redirect('/app');
-  }
+  // if (usageError) {
+  //   console.error('Error checking usage:', usageError);
+  //   redirect('/app');
+  // }
 
-  const usage = usageCheck as unknown as UsageCheckResult;
+  // const usage = usageCheck as unknown as UsageCheckResult;
 
-  // If not allowed (limit reached and not premium), redirect to upgrade
-  if (!usage.allowed) {
-    redirect('/app?upgrade=required');
-  }
+  // // If not allowed (limit reached and not premium), redirect to upgrade
+  // if (!usage.allowed) {
+  //   redirect('/app?upgrade=required');
+  // }
 
   // Create a temporary session
   const session = {

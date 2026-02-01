@@ -5,11 +5,11 @@ import { useUser } from '@clerk/nextjs';
 import { supabase } from '@/lib/supabase/client';
 import { DashboardSkeleton } from '@/components/LoadingSkeleton';
 import { toast } from 'sonner';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import StreakPanel from '@/components/Progress/StreakPanel';
 import PracticeCard from '@/components/PracticeCard';
-import { usePremium } from '@/hooks/usePremium';
-import UpgradeModal from '@/components/UpgradeModal';
+// import { usePremium } from '@/hooks/usePremium'; // Not needed after disabling premium
+// import UpgradeModal from '@/components/UpgradeModal'; // Not needed after disabling premium
 import WordOfTheDay from '@/components/WordOfTheDay';
 interface DashboardClientProps {
   userId: string;
@@ -19,83 +19,87 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
   const { user } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const { isPremium, freeUsage, refetch: refetchPremium } = usePremium();
+  // const pathname = usePathname(); // Not needed after disabling premium features
+  // PREMIUM FEATURES DISABLED - Keeping context for potential future use
+  // const { isPremium, freeUsage, refetch: refetchPremium } = usePremium();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  // const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  // Check for upgrade required or subscription success/canceled query params
+  // PREMIUM FEATURES DISABLED - Query param checks no longer needed
   useEffect(() => {
-    const upgrade = searchParams.get('upgrade');
-    const subscription = searchParams.get('subscription');
+    // const upgrade = searchParams.get('upgrade');
+    // const subscription = searchParams.get('subscription');
 
-    if (upgrade === 'required') {
-      setShowUpgradeModal(true);
-      // Remove query param from URL without refresh
-      router.replace('/app', { scroll: false });
-    }
+    // Premium features disabled - upgrade modal no longer shown
+    // if (upgrade === 'required') {
+    //   setShowUpgradeModal(true);
+    //   // Remove query param from URL without refresh
+    //   router.replace('/app', { scroll: false });
+    // }
 
-    if (subscription === 'success') {
-      // Try to sync subscription from Stripe (in case webhook didn't fire)
-      const syncSubscription = async () => {
-        try {
-          const response = await fetch('/api/stripe/sync-subscription', {
-            method: 'POST',
-          });
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Subscription synced:', data);
-          } else {
-            console.log('Sync response:', await response.json());
-          }
-        } catch (err) {
-          console.error('Failed to sync subscription:', err);
-        }
-        // Always refetch premium status after sync attempt
-        await refetchPremium();
-      };
+    // Premium features disabled - subscription handling no longer needed
+    // if (subscription === 'success') {
+    //   // Try to sync subscription from Stripe (in case webhook didn't fire)
+    //   const syncSubscription = async () => {
+    //     try {
+    //       const response = await fetch('/api/stripe/sync-subscription', {
+    //         method: 'POST',
+    //       });
+    //       if (response.ok) {
+    //         const data = await response.json();
+    //         console.log('Subscription synced:', data);
+    //       } else {
+    //         console.log('Sync response:', await response.json());
+    //       }
+    //     } catch (err) {
+    //       console.error('Failed to sync subscription:', err);
+    //     }
+    //     // Always refetch premium status after sync attempt
+    //     await refetchPremium();
+    //   };
 
-      syncSubscription();
-      toast.success('Welcome to Duomigo Premium! Enjoy unlimited practice.');
-      router.replace('/app', { scroll: false });
-    } else if (subscription === 'canceled') {
-      toast.info('Subscription checkout was canceled.');
-      router.replace('/app', { scroll: false });
-    }
-  }, [searchParams, router, refetchPremium]);
+    //   syncSubscription();
+    //   toast.success('Welcome to Duomigo Premium! Enjoy unlimited practice.');
+    //   router.replace('/app', { scroll: false });
+    // } else if (subscription === 'canceled') {
+    //   toast.info('Subscription checkout was canceled.');
+    //   router.replace('/app', { scroll: false });
+    // }
+  }, [searchParams, router]);
 
+  // PREMIUM FEATURES DISABLED - Premium status refetch no longer needed
   // Refetch premium status when pathname changes to /app (returning from practice)
   // or when window gains focus (returning from Stripe checkout in new tab)
-  useEffect(() => {
-    const handleFocus = () => {
-      if (user) {
-        refetchPremium();
-      }
-    };
+  // useEffect(() => {
+  //   const handleFocus = () => {
+  //     if (user) {
+  //       refetchPremium();
+  //     }
+  //   };
 
-    // Also refetch on visibility change (tab becomes visible)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user) {
-        refetchPremium();
-      }
-    };
+  //   // Also refetch on visibility change (tab becomes visible)
+  //   const handleVisibilityChange = () => {
+  //     if (document.visibilityState === 'visible' && user) {
+  //       refetchPremium();
+  //     }
+  //   };
 
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+  //   window.addEventListener('focus', handleFocus);
+  //   document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user, refetchPremium]);
+  //   return () => {
+  //     window.removeEventListener('focus', handleFocus);
+  //     document.removeEventListener('visibilitychange', handleVisibilityChange);
+  //   };
+  // }, [user, refetchPremium]);
 
-  // Refetch when navigating back to dashboard (pathname changes to /app)
-  useEffect(() => {
-    if (pathname === '/app' && user) {
-      refetchPremium();
-    }
-  }, [pathname, user, refetchPremium]);
+  // // Refetch when navigating back to dashboard (pathname changes to /app)
+  // useEffect(() => {
+  //   if (pathname === '/app' && user) {
+  //     refetchPremium();
+  //   }
+  // }, [pathname, user, refetchPremium]);
 
   const initializeUser = async () => {
     try {
@@ -392,40 +396,20 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
 
   return (
     <>
-      {/* Upgrade Modal */}
-      <UpgradeModal
+      {/* Upgrade Modal - DISABLED (premium features removed) */}
+      {/* <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         remaining={freeUsage?.remaining || 0}
-      />
+      /> */}
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Scrollable practice sections */}
         <div className="flex-1 overflow-y-auto pb-20 lg:pb-0">
-          {/* Premium Status Card - Mobile only */}
+          {/* Word of the Day & Streak - Mobile only */}
           <div className="lg:hidden px-4 pt-4 pb-2 space-y-3">
-            {isPremium ? (
-              <WordOfTheDay />
-            ) : (
-              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                <h3 className="text-base font-bold text-gray-900 mb-1">Subscribe to Premium</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Unlock your full potential. Get unlimited access, daily vocabulary, and personalized AI coaching designed just for you.
-                </p>
-                {freeUsage && (
-                  <p className="text-xs text-gray-500 mb-3">
-                    You have {freeUsage.remaining} free practice{freeUsage.remaining !== 1 ? 's' : ''} left.
-                  </p>
-                )}
-                <button
-                  onClick={() => setShowUpgradeModal(true)}
-                  className="w-1/3 py-2.5 px-4 bg-orange-400 hover:bg-orange-500 text-white text-sm font-semibold rounded-full transition-colors"
-                >
-                  Subscribe
-                </button>
-              </div>
-            )}
+            <WordOfTheDay />
             <StreakPanel />
           </div>
 
@@ -478,29 +462,8 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
         {/* Right sidebar - Desktop only */}
         <div className="hidden lg:block w-[28rem] border-l border-gray-200 bg-white overflow-y-auto">
           <div className="sticky top-0 p-6 space-y-4">
-            {/* Premium Status Card */}
-            {isPremium ? (
-              <WordOfTheDay />
-            ) : (
-              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                <h3 className="text-base font-bold text-gray-900 mb-1">Subscribe to Premium</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Unlock your full potential. Get unlimited access, daily vocabulary, and personalized AI coaching designed just for you.
-                </p>
-                {freeUsage && (
-                  <p className="text-xs text-gray-500 mb-3">
-                    You have {freeUsage.remaining} free practice{freeUsage.remaining !== 1 ? 's' : ''} left.
-                  </p>
-                )}
-                <button
-                  onClick={() => setShowUpgradeModal(true)}
-                  className="w-1/3 py-2.5 px-4 bg-orange-400 hover:bg-orange-500 text-white text-sm font-semibold rounded-full transition-colors"
-                >
-                  Subscribe
-                </button>
-              </div>
-            )}
-
+            {/* Word of the Day & Streak */}
+            <WordOfTheDay />
             <StreakPanel />
           </div>
         </div>

@@ -1,8 +1,8 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { getAdminSupabaseClient } from '@/lib/supabase/admin';
-import { FREE_TIER_LIFETIME_LIMIT } from '@/lib/subscription/constants';
-import type { UsageCheckResult } from '@/types/subscription.types';
+// import { FREE_TIER_LIFETIME_LIMIT } from '@/lib/subscription/constants';
+// import type { UsageCheckResult } from '@/types/subscription.types';
 import PracticeSessionClient from './PracticeSessionClient';
 
 interface WeakSkillType {
@@ -44,27 +44,28 @@ export default async function PracticeSessionPage() {
     redirect('/app');
   }
 
+  // PREMIUM FEATURE DISABLED - Unlimited access for all users
   // Check if user has access (premium or free tier limit not reached)
   // For the practice session, we check 4 times (one for each question)
-  const { data: usageCheck, error: usageError } = await supabase.rpc(
-    'check_and_increment_free_usage',
-    {
-      p_user_id: supabaseUserId,
-      p_lifetime_limit: FREE_TIER_LIFETIME_LIMIT,
-    }
-  );
+  // const { data: usageCheck, error: usageError } = await supabase.rpc(
+  //   'check_and_increment_free_usage',
+  //   {
+  //     p_user_id: supabaseUserId,
+  //     p_lifetime_limit: FREE_TIER_LIFETIME_LIMIT,
+  //   }
+  // );
 
-  if (usageError) {
-    console.error('Error checking usage:', usageError);
-    redirect('/app');
-  }
+  // if (usageError) {
+  //   console.error('Error checking usage:', usageError);
+  //   redirect('/app');
+  // }
 
-  const usage = usageCheck as unknown as UsageCheckResult;
+  // const usage = usageCheck as unknown as UsageCheckResult;
 
-  // If not allowed (limit reached and not premium), redirect to upgrade
-  if (!usage.allowed) {
-    redirect('/app?upgrade=required');
-  }
+  // // If not allowed (limit reached and not premium), redirect to upgrade
+  // if (!usage.allowed) {
+  //   redirect('/app?upgrade=required');
+  // }
 
   // Check how many attempts the user has completed
   const { count: attemptCount } = await supabase
@@ -183,7 +184,7 @@ export default async function PracticeSessionPage() {
       questions={questions}
       sessionId={sessionId}
       supabaseUserId={supabaseUserId}
-      isPremium={usage.is_premium}
+      isPremium={true} // Everyone has premium access now
     />
   );
 }

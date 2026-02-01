@@ -4,7 +4,7 @@
  * GET /api/word-of-the-day
  *
  * Returns a word of the day based on the user's English level.
- * Premium users only.
+ * Available to all users (premium features disabled).
  */
 
 import { NextResponse } from 'next/server';
@@ -52,22 +52,23 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // PREMIUM FEATURES DISABLED - Word of the Day available to all users
     // Check if user has premium access
-    const { data: hasPremium, error: premiumError } = await supabase.rpc(
-      'has_premium_access',
-      { p_user_id: supabaseUserId }
-    );
+    // const { data: hasPremium, error: premiumError } = await supabase.rpc(
+    //   'has_premium_access',
+    //   { p_user_id: supabaseUserId }
+    // );
 
-    if (premiumError) {
-      console.error('Error checking premium:', premiumError);
-    }
+    // if (premiumError) {
+    //   console.error('Error checking premium:', premiumError);
+    // }
 
-    if (!hasPremium) {
-      return NextResponse.json(
-        { error: 'Premium subscription required' },
-        { status: 403 }
-      );
-    }
+    // if (!hasPremium) {
+    //   return NextResponse.json(
+    //     { error: 'Premium subscription required' },
+    //     { status: 403 }
+    //   );
+    // }
 
     // Get today's date (UTC) for caching
     const today = new Date().toISOString().split('T')[0];

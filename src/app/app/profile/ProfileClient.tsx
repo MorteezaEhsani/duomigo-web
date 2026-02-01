@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useClerk } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { usePremium } from '@/hooks/usePremium';
-import SubscriptionManager from '@/components/SubscriptionManager';
+// import { usePremium } from '@/hooks/usePremium'; // Not needed after disabling premium
+// import SubscriptionManager from '@/components/SubscriptionManager'; // Not needed after disabling premium
 
 interface ClerkUser {
   id: string;
@@ -42,7 +42,7 @@ export default function ProfileClient({
 }: ProfileClientProps) {
   const { signOut } = useClerk();
   const router = useRouter();
-  const { createPortal } = usePremium();
+  // const { createPortal } = usePremium(); // Not needed after disabling premium
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -81,16 +81,17 @@ export default function ProfileClient({
     }
   };
 
-  const handleManageSubscription = async () => {
-    try {
-      const url = await createPortal();
-      if (url) {
-        window.location.href = url;
-      }
-    } catch (error) {
-      console.error('Error opening customer portal:', error);
-    }
-  };
+  // PREMIUM FEATURES DISABLED - Subscription management no longer needed
+  // const handleManageSubscription = async () => {
+  //   try {
+  //     const url = await createPortal();
+  //     if (url) {
+  //       window.location.href = url;
+  //     }
+  //   } catch (error) {
+  //     console.error('Error opening customer portal:', error);
+  //   }
+  // };
 
   const displayName = profile?.display_name || clerkUser.firstName || 'User';
   const memberSince = profile?.created_at
@@ -175,15 +176,15 @@ export default function ProfileClient({
           </div>
         </div>
 
-        {/* Subscription */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+        {/* Subscription - HIDDEN (premium features disabled) */}
+        {/* <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
           <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
             <h2 className="font-semibold text-gray-900">Subscription</h2>
           </div>
           <div className="p-4">
             <SubscriptionManager />
           </div>
-        </div>
+        </div> */}
 
         {/* Account Actions */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
